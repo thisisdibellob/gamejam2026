@@ -6,6 +6,8 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "GameSystemSubsystem.generated.h"
 
+class AActor;
+
 UENUM(BlueprintType)
 enum class EGameSystemResult : uint8
 {
@@ -16,6 +18,7 @@ enum class EGameSystemResult : uint8
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FGameSystemSimpleEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FGameSystemResultEvent, EGameSystemResult, Result);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FGameSystemPlayerFoundEvent, AActor*, Finder, AActor*, FoundPlayer);
 
 UCLASS(BlueprintType)
 class GAMEJAM2026_API UGameSystemSubsystem : public UGameInstanceSubsystem
@@ -34,6 +37,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "GameSystem|Events")
 	FGameSystemResultEvent OnGameFinished;
 
+	UPROPERTY(BlueprintAssignable, Category = "GameSystem|Events")
+	FGameSystemPlayerFoundEvent OnPlayerFound;
+
 	// 게임 승리 조건을 달성했을 때 호출합니다.
 	UFUNCTION(BlueprintCallable, Category = "GameSystem")
 	void WinGame();
@@ -45,6 +51,10 @@ public:
 	// 게임 종료 상태를 초기화해서 다시 승리/종료 처리가 가능하게 만듭니다.
 	UFUNCTION(BlueprintCallable, Category = "GameSystem")
 	void ResetGameSystem();
+
+	// NPC 등이 플레이어를 발견했을 때 호출합니다.
+	UFUNCTION(BlueprintCallable, Category = "GameSystem")
+	void FindPlayer(AActor* Finder, AActor* FoundPlayer);
 
 	// 현재 게임이 이미 승리 또는 종료 상태인지 반환합니다.
 	UFUNCTION(BlueprintPure, Category = "GameSystem")

@@ -107,6 +107,15 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC|Detection")
 	bool bHasDiscoveredPlayer = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Detection", meta = (ClampMin = "0.0"))
+	float RequiredPlayerDetectionTime = 2.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC|Detection")
+	float PlayerDetectionTimer = 0.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC|Detection")
+	bool bIsDetectingPlayer = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Status")
 	bool isCrim = false;
 
@@ -138,5 +147,5 @@ private:
 	void SetNPCState(EPatrolNPC2State NewState);
 
 	// NPC가 바라보는 방향으로 레이캐스트를 쏴서 플레이어를 감지함
-	void CheckPlayerDetection();
+	void CheckPlayerDetection(float DeltaTime);
 };
