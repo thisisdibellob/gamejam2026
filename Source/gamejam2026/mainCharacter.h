@@ -21,6 +21,8 @@ enum class EPermanentState : uint8
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FMainCharacterFloatChangedEvent, float, NewValue, float, OldValue);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMainCharacterBoolChangedEvent, bool, bNewValue);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMainCharacterActorEvent, AActor*, TargetActor);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMainCharacterSimpleEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FNearbyNPCChangedEvent, bool, bHasNearbyNPC, AActor*, NearbyNPC);
 
 UCLASS(Blueprintable)
@@ -171,6 +173,12 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "MainCharacter|Events")
 	FMainCharacterBoolChangedEvent OnVampireChangedBroadcast;
+
+	UPROPERTY(BlueprintAssignable, Category = "MainCharacter|Events")
+	FMainCharacterActorEvent OnNPCKilledBroadcast;
+
+	UPROPERTY(BlueprintAssignable, Category = "MainCharacter|Events")
+	FMainCharacterSimpleEvent OnNPCKilledSimpleBroadcast;
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "MainCharacter|Events")
 	void OnVampireChanged(bool bNewIsVampire);

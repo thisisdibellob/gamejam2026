@@ -329,6 +329,9 @@ void AMainCharacter::PerformKill()
 		// 할당되지 않았는데 재생하려고 하면 게임이 튕길 수 있어서 꼭 검사해야 해요!
 		
 
+		UE_LOG(LogTemp, Warning, TEXT("[MainCharacter] NPC killed broadcast fired."));
+		OnNPCKilledBroadcast.Broadcast(TargetNPC);
+		OnNPCKilledSimpleBroadcast.Broadcast();
 		OnKillNPC(TargetNPC);
 	}
 }
