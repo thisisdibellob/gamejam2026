@@ -215,6 +215,7 @@ void AMainCharacter::SetIsVampire(bool bNewIsVampire)
 	}
 
 	OnVampireChanged(bIsVampire);
+	OnVampireChangedBroadcast.Broadcast(bIsVampire);
 }
 
 /* --- �޸��� ���� --- */
@@ -285,6 +286,8 @@ void AMainCharacter::PerformInspect()
 
 void AMainCharacter::PerformStun()
 {
+	if (!bIsVampire) return;
+
 	AActor* TargetNPC = GetClosestNPC();
 	if (TargetNPC)
 	{
@@ -299,6 +302,8 @@ void AMainCharacter::PerformStun()
 
 void AMainCharacter::PerformKill()
 {
+	if (!bIsVampire) return;
+
 	float CurrentTime = GetWorld()->GetTimeSeconds();
 	if (CurrentTime - LastKillTime < KillCooldown)
 	{
