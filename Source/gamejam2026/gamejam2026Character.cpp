@@ -95,23 +95,24 @@ void Agamejam2026Character::SetupPlayerInputComponent(UInputComponent* PlayerInp
 void Agamejam2026Character::Move(const FInputActionValue& Value)
 {
 	// input is a Vector2D
-	FVector2D MovementVector = Value.Get<FVector2D>();
+	const FVector2D MovementVector = Value.Get<FVector2D>();
 
-	if (Controller != nullptr)
+	if (FollowCamera != nullptr)
 	{
-		// find out which way is forward
-		const FRotator Rotation = Controller->GetControlRotation();
-		const FRotator YawRotation(0, Rotation.Yaw, 0);
+		// Project the camera's screen-up and screen-right directions onto the ground.
+		// Using the camera up vector keeps W aligned with the top of the screen even
+		// when the camera is looking straight down.
+		FVector ScreenUpDirection = FollowCamera->GetUpVector();
+		ScreenUpDirection.Z = 0.0f;
+		ScreenUpDirection = ScreenUpDirection.GetSafeNormal();
 
-		// get forward vector
-		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
-	
-		// get right vector 
-		const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
+		FVector ScreenRightDirection = FollowCamera->GetRightVector();
+		ScreenRightDirection.Z = 0.0f;
+		ScreenRightDirection = ScreenRightDirection.GetSafeNormal();
 
-		// add movement 
-		AddMovementInput(ForwardDirection, MovementVector.Y);
-		AddMovementInput(RightDirection, MovementVector.X);
+		// W/S move toward the top/bottom of the screen, A/D move left/right.
+		AddMovementInput(ScreenUpDirection, MovementVector.Y);
+		AddMovementInput(ScreenRightDirection, MovementVector.X);
 	}
 }
 
