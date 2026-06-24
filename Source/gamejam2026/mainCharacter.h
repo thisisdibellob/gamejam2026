@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "gamejam2026Character.h"
 #include "InputAction.h"
+#include "Sound/SoundBase.h"
 #include "mainCharacter.generated.h"
 
 class UInputAction;
@@ -201,6 +202,15 @@ protected:
 
 	void UpdateSprint(float DeltaSeconds);
 	void SetStamina(float NewStamina);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Sound")
+	USoundBase* AttackSound = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Sound")
+	USoundBase* TransformSound = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Sound")
+	USoundBase* RevertTransformSound = nullptr;
 
 	/* --- �������Ʈ���� ȣ�� �����ϵ��� UFUNCTION �߰��� --- */
 	UFUNCTION(BlueprintCallable, Category = "MainCharacter|Sprint")

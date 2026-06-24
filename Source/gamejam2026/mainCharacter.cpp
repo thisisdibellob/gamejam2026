@@ -6,6 +6,7 @@
 #include "InputCoreTypes.h"
 #include "TimerManager.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/GameplayStatics.h"
 #include "Public/PatrolNPC2.h"
 #include "Engine/World.h"
 
@@ -193,6 +194,11 @@ void AMainCharacter::SetIsVampire(bool bNewIsVampire)
 
 	if (bIsVampire)
 	{
+		if (TransformSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, TransformSound, GetActorLocation());
+		}
+
 		UE_LOG(LogTemp, Warning, TEXT("[System] Transformed into a Vampire! Will revert to Human in 30 seconds."));
 
 		if (bIsSprinting) StopSprint();
@@ -209,6 +215,12 @@ void AMainCharacter::SetIsVampire(bool bNewIsVampire)
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[System] Reverted to Human. Awaiting next transformation."));
+
+		if (RevertTransformSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, RevertTransformSound, GetActorLocation());
+		}
+
 
 		GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 		ScheduleNextTransformation(); // �ΰ��� �Ǿ����Ƿ� ���� ���� �����ٸ�
@@ -287,6 +299,12 @@ void AMainCharacter::PerformInspect()
 void AMainCharacter::PerformStun()
 {
 	if (!bIsVampire) return;
+
+	if (AttackSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, AttackSound, GetActorLocation());
+	}
+
 	if (StunMontage)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Playing StunMontage!")); // 이 로그가 찍히는지 확인!
@@ -313,6 +331,11 @@ void AMainCharacter::PerformKill()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Cooling down..."));
 		return;
+	}
+
+	if (AttackSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, AttackSound, GetActorLocation());
 	}
 
 	if (KillMontage)

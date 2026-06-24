@@ -332,6 +332,16 @@ void APatrolNPC2::DisableAndRespawn()
 
 	OnNPCDeathStarted();
 
+	if (HitSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, HitSound, GetActorLocation());
+	}
+
+	if (DeathScreamSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, DeathScreamSound, GetActorLocation());
+	}
+
 	bCanPatrol = false;
 	bEnablePlayerDetection = false;
 	bIsDetectingPlayer = false;
@@ -421,6 +431,11 @@ void APatrolNPC2::SetStunned(bool bNewStunned)
 
 	if (bNewStunned)
 	{
+		if (StunSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, StunSound, GetActorLocation());
+		}
+
 		FrozenLocation = GetActorLocation();
 
 		SetActorLocation(FrozenLocation, false);

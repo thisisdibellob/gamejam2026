@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Animation/AnimMontage.h"
+#include "Sound/SoundBase.h"
 #include "PatrolNPC2.generated.h"
 
 // NPC가 어느 방향으로 왕복 이동할지 정하는 enum
@@ -65,6 +66,16 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 protected:
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Sound")
+	USoundBase* HitSound = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Sound")
+	USoundBase* StunSound = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Sound")
+	USoundBase* DeathScreamSound = nullptr;
+
 	// 리스폰될 때 범죄자로 설정될 확률. 0.3이면 30%
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Status", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float CriminalSpawnChance = 0.3f;
