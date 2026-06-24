@@ -90,6 +90,17 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Detection")
 	bool bDrawDebugDetection = true;
 
+	// 정면 기준 감지 부채꼴 전체 각도
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Detection", meta = (ClampMin = "0.0", ClampMax = "180.0"))
+	float DetectionAngle = 60.0f;
+
+	// 부채꼴 안에 몇 개의 레이캐스트를 쏠지
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Detection", meta = (ClampMin = "1"))
+	int32 DetectionRayCount = 7;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC|Detection")
+	bool bHasDiscoveredPlayer = false;
+
 private:
 	// 시작 위치와 끝 위치를 계산함
 	void SetupPatrolPoints();

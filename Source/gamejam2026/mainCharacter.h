@@ -10,13 +10,13 @@
 class UInputAction;
 struct FInputActionValue;
 
-// ¿µ±¸ »óÅÂ¸¦ Á¤ÀÇÇÏ±â À§ÇÑ ¿­°ÅÇü
+// ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Â¸ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï±ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 UENUM(BlueprintType)
 enum class EPermanentState : uint8
 {
 	None			UMETA(DisplayName = "None"),
-	PureHuman		UMETA(DisplayName = "Pure Human (¿µ±¸ ÀÎ°£)"),
-	PureVampire		UMETA(DisplayName = "Pure Vampire (¿µ±¸ ÈíÇ÷±Í)")
+	PureHuman		UMETA(DisplayName = "Pure Human (ï¿½ï¿½ï¿½ï¿½ ï¿½Î°ï¿½)"),
+	PureVampire		UMETA(DisplayName = "Pure Vampire (ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)")
 };
 
 UCLASS(Blueprintable)
@@ -30,19 +30,19 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	// »ç¸Á »óÅÂ È®ÀÎ¿ë (Áßº¹ »ç¸Á ¹æÁö)
+	// ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ È®ï¿½Î¿ï¿½ (ï¿½ßºï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½)
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MainCharacter|Status")
 	bool bIsDead = false;
 
-	// NPC°¡ ÇÃ·¹ÀÌ¾î¸¦ ¹ß°ßÇßÀ» ¶§ È£ÃâÇÒ ÇÔ¼ö
+	// NPCï¿½ï¿½ ï¿½Ã·ï¿½ï¿½Ì¾î¸¦ ï¿½ß°ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ È£ï¿½ï¿½ï¿½ï¿½ ï¿½Ô¼ï¿½
 	UFUNCTION(BlueprintCallable, Category = "MainCharacter|Events")
 	void OnDiscoveredByNPC(AActor* NPC);
 
-	// »ç¸Á ½Ã ºí·çÇÁ¸°Æ®·Î ½ÅÈ£¸¦ º¸³»´Â ÀÌº¥Æ® (°ÔÀÓ ¿À¹ö UI, »ç¸Á ¾Ö´Ï¸ÞÀÌ¼Ç Àç»ý¿ë)
+	// ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ®ï¿½ï¿½ ï¿½ï¿½È£ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ìºï¿½Æ® (ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ UI, ï¿½ï¿½ï¿½ ï¿½Ö´Ï¸ï¿½ï¿½Ì¼ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½)
 	UFUNCTION(BlueprintImplementableEvent, Category = "MainCharacter|Events")
 	void OnDeath();
 
-	/* --- »óÅÂ º¯¼ö (Ã¼·Â Á¦°ÅµÊ) --- */
+	/* --- ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ (Ã¼ï¿½ï¿½ ï¿½ï¿½ï¿½Åµï¿½) --- */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MainCharacter|Status", meta = (ClampMin = "0.0", ClampMax = "100.0"))
 	float Guilt = 50.0f;
 
@@ -58,7 +58,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MainCharacter|Status")
 	EPermanentState PermanentState = EPermanentState::None;
 
-	/* --- ÀÌµ¿ ¹× ½ºÅÂ¹Ì³ª --- */
+	/* --- ï¿½Ìµï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½Â¹Ì³ï¿½ --- */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Sprint", meta = (ClampMin = "0.0"))
 	float WalkSpeed = 500.0f;
 
@@ -83,7 +83,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MainCharacter|Sprint")
 	bool bIsSprinting = false;
 
-	/* --- ½ºÅ³ ¹× ÄðÅ¸ÀÓ --- */
+	/* --- ï¿½ï¿½Å³ ï¿½ï¿½ ï¿½ï¿½Å¸ï¿½ï¿½ --- */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Skills")
 	float InspectCooldown = 3.0f;
 
@@ -91,9 +91,9 @@ public:
 	float KillCooldown = 5.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Skills")
-	float InteractRadius = 150.0f; // NPC °Ë»ç ¹Ý°æ
+	float InteractRadius = 150.0f; // NPC ï¿½Ë»ï¿½ ï¿½Ý°ï¿½
 
-	/* --- ÀÔ·Â ¾×¼Ç --- */
+	/* --- ï¿½Ô·ï¿½ ï¿½×¼ï¿½ --- */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputAction* SprintAction; // Shift
 
@@ -106,7 +106,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputAction* KillAction; // R
 
-	/* --- Setter ¹× C++ ÇÔ¼ö --- */
+	/* --- Setter ï¿½ï¿½ C++ ï¿½Ô¼ï¿½ --- */
 	UFUNCTION(BlueprintCallable, Category = "MainCharacter|Status")
 	void SetGuilt(float NewGuilt);
 
@@ -131,7 +131,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "MainCharacter|Sprint")
 	float GetStaminaPercent() const;
 
-	/* --- ÀÌº¥Æ® µð½ºÆÐÃ³ (BP ¿¬µ¿¿ë) --- */
+	/* --- ï¿½Ìºï¿½Æ® ï¿½ï¿½ï¿½ï¿½Ã³ (BP ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½) --- */
 	UFUNCTION(BlueprintImplementableEvent, Category = "MainCharacter|Events")
 	void OnGuiltChanged(float NewGuilt, float OldGuilt);
 
@@ -144,7 +144,7 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "MainCharacter|Events")
 	void OnSprintChanged(bool bNewIsSprinting);
 
-	// BP¿¡¼­ ½Ã°¢Àû È¿°ú³ª NPC ÇÔ¼ö È£ÃâÀ» Ã³¸®ÇÏ±â À§ÇÑ ÀÌº¥Æ®
+	// BPï¿½ï¿½ï¿½ï¿½ ï¿½Ã°ï¿½ï¿½ï¿½ È¿ï¿½ï¿½ï¿½ï¿½ NPC ï¿½Ô¼ï¿½ È£ï¿½ï¿½ï¿½ï¿½ Ã³ï¿½ï¿½ï¿½Ï±ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ìºï¿½Æ®
 	UFUNCTION(BlueprintImplementableEvent, Category = "MainCharacter|Events")
 	void OnInspectNPC(AActor* TargetNPC);
 
@@ -160,7 +160,7 @@ protected:
 	void UpdateSprint(float DeltaSeconds);
 	void SetStamina(float NewStamina);
 
-	/* --- ºí·çÇÁ¸°Æ®¿¡¼­ È£Ãâ °¡´ÉÇÏµµ·Ï UFUNCTION Ãß°¡µÊ --- */
+	/* --- ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Æ®ï¿½ï¿½ï¿½ï¿½ È£ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ïµï¿½ï¿½ï¿½ UFUNCTION ï¿½ß°ï¿½ï¿½ï¿½ --- */
 	UFUNCTION(BlueprintCallable, Category = "MainCharacter|Sprint")
 	void StartSprint();
 
@@ -176,11 +176,11 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = "MainCharacter|Skills")
 	void PerformKill();    // R
 
-	// ½Ã½ºÅÛ ·ÎÁ÷
+	// ï¿½Ã½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	void ScheduleNextTransformation();
 	void TransformToVampire();
 
-	// °¡Àå °¡±î¿î NPC Å½»ö ÇïÆÛ ÇÔ¼ö
+	// ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ NPC Å½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ô¼ï¿½
 	AActor* GetClosestNPC();
 
 private:

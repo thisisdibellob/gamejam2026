@@ -1,5 +1,6 @@
 #include "Kismet/GameplayStatics.h"
 #include "DrawDebugHelpers.h"
+#include "../MainCharacter.h"
 #include "PatrolNPC2.h"
 
 
@@ -158,8 +159,6 @@ void APatrolNPC2::SetNPCState(EPatrolNPC2State NewState)
 	// 상태 변경을 한 함수에 모아두면,
 	// 나중에 상태 변경 이벤트나 로그를 붙이기 쉬움
 	CurrentState = NewState;
-
-	UE_LOG(LogTemp, Warning, TEXT("PatrolNPC2 State Changed: %d"), static_cast<int32>(CurrentState));
 }
 
 void APatrolNPC2::CheckPlayerDetection()
@@ -182,52 +181,77 @@ void APatrolNPC2::CheckPlayerDetection()
 	}
 
 	const FVector TraceStart = GetActorLocation() + FVector(0.0f, 0.0f, 50.0f);
-	const FVector TraceEnd = TraceStart + (GetActorForwardVector() * DetectionDistance);
+	const FVector Forward = GetActorForwardVector();
 
-	FHitResult HitResult;
+	const int32 RayCount = FMath::Max(DetectionRayCount, 1);
+	const float HalfAngle = DetectionAngle * 0.5f;
+	const float AngleStep = RayCount > 1 ? DetectionAngle / static_cast<float>(RayCount - 1) : 0.0f;
 
-	FCollisionQueryParams QueryParams;
-	QueryParams.AddIgnoredActor(this);
-
-	const bool bHit = World->LineTraceSingleByChannel(
-		HitResult,
-		TraceStart,
-		TraceEnd,
-		ECC_Visibility,
-		QueryParams
-	);
-
-	AActor* HitActor = nullptr;
 	bool bHitPlayer = false;
+	AActor* HitActor = nullptr;
 
-	if (bHit)
+	for (int32 RayIndex = 0; RayIndex < RayCount; ++RayIndex)
 	{
-		HitActor = HitResult.GetActor();
-		bHitPlayer = (HitActor == PlayerPawn);
-	}
+		const float CurrentAngle = -HalfAngle + (AngleStep * RayIndex);
 
-	if (bDrawDebugDetection)
-	{
-		// 플레이어를 맞췄을 때만 빨간색
-		// 벽이나 다른 물체를 맞았거나 아무것도 안 맞으면 초록색
-		const FColor LineColor = bHitPlayer ? FColor::Red : FColor::Green;
+		const FVector RayDirection = Forward.RotateAngleAxis(CurrentAngle, FVector::UpVector);
+		const FVector TraceEnd = TraceStart + (RayDirection * DetectionDistance);
 
-		DrawDebugLine(
-			World,
+		FHitResult HitResult;
+
+		FCollisionQueryParams QueryParams;
+		QueryParams.AddIgnoredActor(this);
+
+		const bool bHit = World->LineTraceSingleByChannel(
+			HitResult,
 			TraceStart,
 			TraceEnd,
-			LineColor,
-			false,
-			0.0f,
-			0,
-			2.0f
+			ECC_Visibility,
+			QueryParams
 		);
+
+		bool bThisRayHitPlayer = false;
+
+		if (bHit)
+		{
+			HitActor = HitResult.GetActor();
+			bThisRayHitPlayer = (HitActor == PlayerPawn);
+
+			if (bThisRayHitPlayer)
+			{
+				bHitPlayer = true;
+			}
+		}
+
+		if (bDrawDebugDetection)
+		{
+			const FColor LineColor = bThisRayHitPlayer ? FColor::Red : FColor::Green;
+
+			DrawDebugLine(
+				World,
+				TraceStart,
+				TraceEnd,
+				LineColor,
+				false,
+				0.0f,
+				0,
+				2.0f
+			);
+		}
 	}
 
-	if (!bHitPlayer)
+	if (!bHitPlayer || bHasDiscoveredPlayer)
 	{
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Player detected by PatrolNPC2 raycast!"));
+	AMainCharacter* MainCharacter = Cast<AMainCharacter>(PlayerPawn);
+	if (!MainCharacter)
+	{
+		return;
+	}
+
+	bHasDiscoveredPlayer = true;
+
+	MainCharacter->OnDiscoveredByNPC(this);
 }

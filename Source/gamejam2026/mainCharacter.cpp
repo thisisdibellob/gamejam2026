@@ -23,7 +23,7 @@ void AMainCharacter::BeginPlay()
 
 	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 
-	// °ÔÀÓ ½ÃÀÛ ½Ã Ã¹ º¯½Å ½ºÄÉÁÙ¸µ
+	// ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ Ã¹ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ù¸ï¿½
 	ScheduleNextTransformation();
 }
 
@@ -32,15 +32,15 @@ void AMainCharacter::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 	UpdateSprint(DeltaSeconds);
 
-	// ¹ìÆÄÀÌ¾î »óÅÂÀÏ ¶§ ÈíÇ÷ °áÇÌµµ Áö¼Ó »ó½Â (¿µ±¸ ÈíÇ÷±Í°¡ ¾Æ´Ò ¶§¸¸)
+	// ï¿½ï¿½ï¿½ï¿½ï¿½Ì¾ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ìµï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Í°ï¿½ ï¿½Æ´ï¿½ ï¿½ï¿½ï¿½ï¿½)
 	if (bIsVampire && PermanentState != EPermanentState::PureVampire)
 	{
 		float OldBlood = Blood;
-		float BloodIncreasePerSecond = 3.0f; // ÃÊ´ç 3¾¿ °áÇÌµµ Áõ°¡ (±âÈ¹¿¡ ¸Â°Ô ¼öÁ¤ °¡´É)
+		float BloodIncreasePerSecond = 3.0f; // ï¿½Ê´ï¿½ 3ï¿½ï¿½ ï¿½ï¿½ï¿½Ìµï¿½ ï¿½ï¿½ï¿½ï¿½ (ï¿½ï¿½È¹ï¿½ï¿½ ï¿½Â°ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½)
 
 		SetBlood(Blood + (BloodIncreasePerSecond * DeltaSeconds));
 
-		// ·Î±× ½ºÆÔÀ» ¸·±â À§ÇØ 100¿¡ µü µµ´ÞÇÑ ¼ø°£ ÇÑ ¹ø¸¸ °æ°í Ãâ·Â
+		// ï¿½Î±ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ 100ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½
 		if (OldBlood < MaxBlood && Blood >= MaxBlood)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("[System] Blood deficiency reached maximum! Quick hunting is needed."));
@@ -54,7 +54,7 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
-		// ´Þ¸®±â (Shift)
+		// ï¿½Þ¸ï¿½ï¿½ï¿½ (Shift)
 		if (SprintAction)
 		{
 			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &AMainCharacter::StartSprint);
@@ -62,19 +62,19 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Canceled, this, &AMainCharacter::StopSprint);
 		}
 
-		// Ç÷°ü °Ë»ç (Q)
+		// ï¿½ï¿½ï¿½ï¿½ ï¿½Ë»ï¿½ (Q)
 		if (InspectAction)
 		{
 			EnhancedInputComponent->BindAction(InspectAction, ETriggerEvent::Started, this, &AMainCharacter::PerformInspect);
 		}
 
-		// ±âÀý (E)
+		// ï¿½ï¿½ï¿½ï¿½ (E)
 		if (StunAction)
 		{
 			EnhancedInputComponent->BindAction(StunAction, ETriggerEvent::Started, this, &AMainCharacter::PerformStun);
 		}
 
-		// Á×ÀÌ±â/»ç³É (R)
+		// ï¿½ï¿½ï¿½Ì±ï¿½/ï¿½ï¿½ï¿½ (R)
 		if (KillAction)
 		{
 			EnhancedInputComponent->BindAction(KillAction, ETriggerEvent::Started, this, &AMainCharacter::PerformKill);
@@ -87,7 +87,7 @@ void AMainCharacter::SetGuilt(float NewGuilt)
 	const float OldGuilt = Guilt;
 	Guilt = FMath::Clamp(NewGuilt, 0.0f, 100.0f);
 
-	// ¿µ±¸ »óÅÂ Ã¼Å© ¹× ·Î±× Ãâ·Â
+	// ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Ã¼Å© ï¿½ï¿½ ï¿½Î±ï¿½ ï¿½ï¿½ï¿½
 	if (Guilt >= 100.0f && PermanentState != EPermanentState::PureVampire)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[System] Guilt reached 100. Permanently turned into 'Pure Vampire'!"));
@@ -109,7 +109,7 @@ void AMainCharacter::SetGuilt(float NewGuilt)
 
 void AMainCharacter::AddGuilt(float Amount)
 {
-	// Ã³Ä¡ÇÑ ´ë»ó¿¡ µû¸¥ ·Î±× Ãâ·Â (¾ç¼ö: ÀÏ¹ÝÀÎ, À½¼ö: ¹üÁËÀÚ)
+	// Ã³Ä¡ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Î±ï¿½ ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½: ï¿½Ï¹ï¿½ï¿½ï¿½, ï¿½ï¿½ï¿½ï¿½: ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½)
 	if (Amount > 0.0f)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[System] Killed an innocent. Guilt increased by %f."), Amount);
@@ -135,7 +135,7 @@ void AMainCharacter::SetBlood(float NewBlood)
 
 void AMainCharacter::AddBlood(float Amount)
 {
-	// À½¼ö°ªÀÌ µé¾î¿À¸é »ç³ÉÀ» ÅëÇØ °áÇÌµµ¸¦ ÇØ¼ÒÇÑ °ÍÀ¸·Î ÆÇÁ¤
+	// ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ìµï¿½ï¿½ï¿½ ï¿½Ø¼ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	if (Amount < 0.0f && bIsVampire)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[System] Bloodsucking successful. Blood deficiency decreased by %f."), FMath::Abs(Amount));
@@ -157,7 +157,7 @@ void AMainCharacter::SetIsVampire(bool bNewIsVampire)
 		if (bIsSprinting) StopSprint();
 		GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
 
-		// ¿µ±¸ ÈíÇ÷±Í°¡ ¾Æ´Ò ¶§¸¸ 30ÃÊ ÈÄ µ¹¾Æ°¡´Â Å¸ÀÌ¸Ó ÀÛµ¿
+		// ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Í°ï¿½ ï¿½Æ´ï¿½ ï¿½ï¿½ï¿½ï¿½ 30ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½Æ°ï¿½ï¿½ï¿½ Å¸ï¿½Ì¸ï¿½ ï¿½Ûµï¿½
 		if (PermanentState != EPermanentState::PureVampire)
 		{
 			FTimerDelegate TimerDel;
@@ -170,13 +170,13 @@ void AMainCharacter::SetIsVampire(bool bNewIsVampire)
 		UE_LOG(LogTemp, Warning, TEXT("[System] Reverted to Human. Awaiting next transformation."));
 
 		GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
-		ScheduleNextTransformation(); // ÀÎ°£ÀÌ µÇ¾úÀ¸¹Ç·Î ´ÙÀ½ º¯½Å ½ºÄÉÁÙ¸µ
+		ScheduleNextTransformation(); // ï¿½Î°ï¿½ï¿½ï¿½ ï¿½Ç¾ï¿½ï¿½ï¿½ï¿½Ç·ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ù¸ï¿½
 	}
 
 	OnVampireChanged(bIsVampire);
 }
 
-/* --- ´Þ¸®±â ·ÎÁ÷ --- */
+/* --- ï¿½Þ¸ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ --- */
 void AMainCharacter::StartSprint()
 {
 	if (bIsVampire) return;
@@ -226,7 +226,7 @@ void AMainCharacter::SetStamina(float NewStamina)
 	Stamina = FMath::Clamp(NewStamina, 0.0f, MaxStamina);
 }
 
-/* --- ½ºÅ³ ·ÎÁ÷ --- */
+/* --- ï¿½ï¿½Å³ ï¿½ï¿½ï¿½ï¿½ --- */
 void AMainCharacter::PerformInspect()
 {
 	if (bIsVampire) return;
@@ -296,7 +296,7 @@ AActor* AMainCharacter::GetClosestNPC()
 	return ClosestNPC;
 }
 
-/* --- º¯½Å ½Ã½ºÅÛ --- */
+/* --- ï¿½ï¿½ï¿½ï¿½ ï¿½Ã½ï¿½ï¿½ï¿½ --- */
 void AMainCharacter::ScheduleNextTransformation()
 {
 	if (PermanentState == EPermanentState::PureHuman || PermanentState == EPermanentState::PureVampire) return;
@@ -338,7 +338,7 @@ void AMainCharacter::OnDiscoveredByNPC(AActor* NPC)
 	}
 }
 
-/* --- Percent ¹ÝÈ¯ ÇïÆÛ --- */
+/* --- Percent ï¿½ï¿½È¯ ï¿½ï¿½ï¿½ï¿½ --- */
 float AMainCharacter::GetGuiltPercent() const { return Guilt / 100.0f; }
 float AMainCharacter::GetBloodPercent() const { return MaxBlood > 0.0f ? Blood / MaxBlood : 0.0f; }
 float AMainCharacter::GetStaminaPercent() const { return MaxStamina > 0.0f ? Stamina / MaxStamina : 0.0f; }
