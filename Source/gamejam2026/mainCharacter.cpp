@@ -7,6 +7,7 @@
 #include "TimerManager.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameSystemSubsystem.h"
 #include "Public/PatrolNPC2.h"
 #include "Engine/World.h"
 
@@ -46,14 +47,22 @@ void AMainCharacter::Tick(float DeltaSeconds)
 	if (bIsVampire && PermanentState != EPermanentState::PureVampire)
 	{
 		float OldBlood = Blood;
-		float BloodIncreasePerSecond = 3.0f; // �ʴ� 3�� ���̵� ���� (��ȹ�� �°� ���� ����)
+		float BloodDecreasePerSecond = 1.0f;
 
-		SetBlood(Blood + (BloodIncreasePerSecond * DeltaSeconds));
+		SetBlood(Blood - (BloodDecreasePerSecond * DeltaSeconds));
 
-		// �α� ������ ���� ���� 100�� �� ������ ���� �� ���� ��� ���
-		if (OldBlood < MaxBlood && Blood >= MaxBlood)
+		if (OldBlood > 0.0f && Blood <= 0.0f)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("[System] Blood deficiency reached maximum! Quick hunting is needed."));
+			UE_LOG(LogTemp, Warning, TEXT("[System] Blood reached 0. Game over."));
+			bIsDead = true;
+
+			if (UGameInstance* GameInstance = GetGameInstance())
+			{
+				if (UGameSystemSubsystem* GameSystem = GameInstance->GetSubsystem<UGameSystemSubsystem>())
+				{
+					GameSystem->EndGame();
+				}
+			}
 		}
 	}
 }
@@ -355,7 +364,6 @@ void AMainCharacter::PerformKill()
 		// 몽타주가 에디터에서 제대로 할당되었는지 확인 후 재생합니다.
 		// 할당되지 않았는데 재생하려고 하면 게임이 튕길 수 있어서 꼭 검사해야 해요!
 		
-
 		UE_LOG(LogTemp, Warning, TEXT("[MainCharacter] NPC killed broadcast fired."));
 		OnNPCKilledBroadcast.Broadcast(TargetNPC);
 		OnNPCKilledSimpleBroadcast.Broadcast();

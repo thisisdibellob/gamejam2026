@@ -76,9 +76,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Sound")
 	USoundBase* DeathScreamSound = nullptr;
 
-	// 리스폰될 때 범죄자로 설정될 확률. 0.3이면 30%
+	// 생성/리스폰될 때 범죄자로 설정될 확률. 0.5이면 50%
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Status", meta = (ClampMin = "0.0", ClampMax = "1.0"))
-	float CriminalSpawnChance = 0.3f;
+	float CriminalSpawnChance = 0.5f;
 	// 스턴 당했을 때 재생할 몽타주
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Animation")
 	UAnimMontage* StunMontage = nullptr;

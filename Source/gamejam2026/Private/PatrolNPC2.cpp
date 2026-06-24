@@ -225,6 +225,14 @@ void APatrolNPC2::CheckPlayerDetection(float DeltaTime)
 		return;
 	}
 
+	AMainCharacter* MainCharacter = Cast<AMainCharacter>(PlayerPawn);
+	if (!MainCharacter || !MainCharacter->bIsVampire)
+	{
+		bIsDetectingPlayer = false;
+		PlayerDetectionTimer = 0.0f;
+		return;
+	}
+
 	const FVector TraceStart = GetActorLocation() + FVector(0.0f, 0.0f, 50.0f);
 	const FVector Forward = GetActorForwardVector();
 
@@ -295,12 +303,6 @@ void APatrolNPC2::CheckPlayerDetection(float DeltaTime)
 	bIsDetectingPlayer = true;
 	PlayerDetectionTimer += DeltaTime;
 	if (PlayerDetectionTimer < RequiredPlayerDetectionTime)
-	{
-		return;
-	}
-
-	AMainCharacter* MainCharacter = Cast<AMainCharacter>(PlayerPawn);
-	if (!MainCharacter)
 	{
 		return;
 	}
