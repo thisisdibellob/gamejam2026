@@ -33,6 +33,9 @@ class GAMEJAM2026_API APatrolNPC2 : public ACharacter
 public:
 	APatrolNPC2();
 
+	UFUNCTION(BlueprintCallable, Category = "NPC|Respawn")
+	void DisableAndRespawn();
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -101,7 +104,20 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC|Detection")
 	bool bHasDiscoveredPlayer = false;
 
+	// 공격당해서 사라진 뒤 다시 나타나기까지 걸리는 시간
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Respawn", meta = (ClampMin = "0.0"))
+	float RespawnDelay = 3.0f;
+
+	// 현재 리스폰 대기 중인지 여부
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC|Respawn")
+	bool bIsRespawning = false;
+
 private:
+
+	// 대기 시간이 지난 뒤 NPC를 다시 활성화할 때 사용하는 타이머 핸들
+	FTimerHandle RespawnTimerHandle;
+
+	void FinishRespawn();
 	// 시작 위치와 끝 위치를 계산함
 	void SetupPatrolPoints();
 
