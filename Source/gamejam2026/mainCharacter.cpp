@@ -34,6 +34,13 @@ void AMainCharacter::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 	UpdateSprint(DeltaSeconds);
 
+	AActor* NewNearbyNPC = GetClosestNPC();
+	if (CurrentNearbyNPC != NewNearbyNPC)
+	{
+		CurrentNearbyNPC = NewNearbyNPC;
+		OnNearbyNPCChangedBroadcast.Broadcast(CurrentNearbyNPC != nullptr, CurrentNearbyNPC);
+	}
+
 	// �����̾� ������ �� ���� ���̵� ���� ��� (���� �����Ͱ� �ƴ� ����)
 	if (bIsVampire && PermanentState != EPermanentState::PureVampire)
 	{

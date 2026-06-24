@@ -20,6 +20,7 @@ enum class EPermanentState : uint8
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FMainCharacterFloatChangedEvent, float, NewValue, float, OldValue);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FNearbyNPCChangedEvent, bool, bHasNearbyNPC, AActor*, NearbyNPC);
 
 UCLASS(Blueprintable)
 class AMainCharacter : public Agamejam2026Character
@@ -164,6 +165,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "MainCharacter|Events")
 	FMainCharacterFloatChangedEvent OnBloodChangedBroadcast;
 
+	UPROPERTY(BlueprintAssignable, Category = "MainCharacter|Events")
+	FNearbyNPCChangedEvent OnNearbyNPCChangedBroadcast;
+
 	UFUNCTION(BlueprintImplementableEvent, Category = "MainCharacter|Events")
 	void OnVampireChanged(bool bNewIsVampire);
 
@@ -220,6 +224,9 @@ protected:
 	UAnimMontage* TransformMontage;
 private:
 	FTimerHandle TransformTimerHandle;
+	UPROPERTY()
+	AActor* CurrentNearbyNPC = nullptr;
+
 	float LastInspectTime = -999.0f;
 	float LastKillTime = -999.0f;
 };
