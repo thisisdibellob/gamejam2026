@@ -34,6 +34,9 @@ class GAMEJAM2026_API APatrolNPC2 : public ACharacter
 
 public:
 
+	UFUNCTION(BlueprintImplementableEvent, Category = "NPC|Events")
+	void OnNPCDeathStarted();
+
 	UFUNCTION(BlueprintPure, Category = "NPC|Animation")
 	bool IsWalkingForAnimation() const;
 

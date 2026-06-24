@@ -330,6 +330,8 @@ void APatrolNPC2::DisableAndRespawn()
 
 	SetNPCState(EPatrolNPC2State::Dead);
 
+	OnNPCDeathStarted();
+
 	bCanPatrol = false;
 	bEnablePlayerDetection = false;
 	bIsDetectingPlayer = false;
