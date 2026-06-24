@@ -43,8 +43,6 @@ void APatrolNPC2::Tick(float DeltaTime)
 		return;
 	}
 
-	// 순찰이 꺼졌거나 기절 상태면 이동 로직을 실행하지 않음
-	if (!bCanPatrol || CurrentState == EPatrolNPC2State::Stunned)
 	CheckPlayerDetection(DeltaTime);
 
 	// 순찰이 꺼졌거나 플레이어를 감지 중이면 이동 로직을 실행하지 않음
