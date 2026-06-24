@@ -234,6 +234,8 @@ protected:
 	UAnimMontage* KillMontage; // 여기서 몽타주를 저장할 변수를 만듭니다.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Animations")
 	UAnimMontage* TransformMontage;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Animations")
+	UAnimMontage* StunMontage;
 private:
 	FTimerHandle TransformTimerHandle;
 	UPROPERTY()

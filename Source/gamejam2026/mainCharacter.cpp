@@ -287,7 +287,11 @@ void AMainCharacter::PerformInspect()
 void AMainCharacter::PerformStun()
 {
 	if (!bIsVampire) return;
-
+	if (StunMontage)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Playing StunMontage!")); // 이 로그가 찍히는지 확인!
+		PlayAnimMontage(StunMontage);
+	}
 	AActor* TargetNPC = GetClosestNPC();
 	if (TargetNPC)
 	{
