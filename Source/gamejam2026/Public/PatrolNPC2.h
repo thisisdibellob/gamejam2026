@@ -155,7 +155,7 @@ protected:
 
 	// 디버그 라인을 화면에 그릴지 여부
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Detection")
-	bool bDrawDebugDetection = true;
+	bool bDrawDebugDetection = false;
 
 	// 정면 기준 감지 부채꼴 전체 각도
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Detection", meta = (ClampMin = "0.0", ClampMax = "180.0"))
