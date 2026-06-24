@@ -32,6 +32,12 @@ class GAMEJAM2026_API APatrolNPC2 : public ACharacter
 
 public:
 
+	UFUNCTION(BlueprintCallable, Category = "NPC|Status")
+	void SetStunned(bool bNewStunned);
+
+	UFUNCTION(BlueprintPure, Category = "NPC|Animation")
+	bool IsMovingForAnimation() const;
+
 	// NPC가 공격당했을 때 호출.
 	// 실제 Destroy 대신 숨겼다가 RespawnDelay 후 StartLocation에서 다시 활성화함.
 	UFUNCTION(BlueprintCallable, Category = "NPC|Respawn")
@@ -46,6 +52,11 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 protected:
+
+	// 스턴이 유지되는 시간
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Status", meta = (ClampMin = "0.0"))
+	float StunDuration = 3.0f;
+
 	// 레벨에 배치한 NPC마다 좌우/상하 이동 방향을 설정할 수 있음
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Patrol")
 	EPatrolNPC2Direction PatrolDirection = EPatrolNPC2Direction::Horizontal;
@@ -128,6 +139,11 @@ protected:
 	bool bIsRespawning = false;
 
 private:
+
+	FTimerHandle StunTimerHandle;
+
+	// 스턴 시간이 끝났을 때 다시 순찰/감지를 켬
+	void RecoverFromStun();
 
 	FTimerHandle RespawnTimerHandle;
 
