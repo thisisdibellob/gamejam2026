@@ -1,0 +1,22 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "{CBE0A06E-4C87-ABAE-0B26-778C7F367764}",
+	"Category": "",
+	"Description": "",
+	"Modules": [
+		{
+			"Name": "gamejam2026",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "ModelingToolsEditorMode",
+			"Enabled": true,
+			"TargetAllowList": [
+				"Editor"
+			]
+		}
+	]
+}
