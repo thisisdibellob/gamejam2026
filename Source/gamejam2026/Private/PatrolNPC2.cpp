@@ -429,7 +429,7 @@ void APatrolNPC2::SetStunned(bool bNewStunned)
 		bIsDetectingPlayer = false;
 		PlayerDetectionTimer = 0.0f;
 
-		GetCharacterMovement()->StopMovementImmediately();
+		GetCharacterMovement()->StopMovementImmediately(); 
 		GetCharacterMovement()->DisableMovement();
 
 		if (StunMontage)
@@ -443,7 +443,7 @@ void APatrolNPC2::SetStunned(bool bNewStunned)
 		if (World)
 		{
 			World->GetTimerManager().ClearTimer(StunTimerHandle);
-			World->GetTimerManager().SetTimer(
+			World->GetTimerManager().SetTimer( 
 				StunTimerHandle,
 				this,
 				&APatrolNPC2::RecoverFromStun,
