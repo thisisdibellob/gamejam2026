@@ -399,7 +399,19 @@ void AMainCharacter::TransformToVampire()
 
 void AMainCharacter::OnDiscoveredByNPC(AActor* NPC)
 {
+
+	UE_LOG(LogTemp, Warning, TEXT("[OnDiscoveredByNPC] bIsDead=%d bIsVampire=%d"),
+		bIsDead,
+		bIsVampire
+	);
+
 	if (bIsDead) return;
+
+	if (!bIsVampire)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[System] Discovered by NPC, but player is human. No game over."));
+		return;
+	}
 
 	if (bIsVampire)
 	{

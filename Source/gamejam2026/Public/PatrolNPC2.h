@@ -33,6 +33,8 @@ class GAMEJAM2026_API APatrolNPC2 : public ACharacter
 	GENERATED_BODY()
 
 public:
+	UFUNCTION(BlueprintImplementableEvent, Category = "NPC|Events")
+	void OnNPCStunStarted();
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "NPC|Events")
 	void OnNPCDeathStarted();

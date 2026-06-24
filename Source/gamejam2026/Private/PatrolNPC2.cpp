@@ -426,6 +426,8 @@ void APatrolNPC2::SetStunned(bool bNewStunned)
 		SetActorLocation(FrozenLocation, false);
 		SetNPCState(EPatrolNPC2State::Stunned);
 
+		OnNPCStunStarted();
+
 		bCanPatrol = false;
 		bEnablePlayerDetection = false;
 		bIsDetectingPlayer = false;
