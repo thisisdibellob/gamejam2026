@@ -19,6 +19,7 @@ void AMainCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	SetGuilt(Guilt);
+	SetInvest(Invest);
 	SetBlood(Blood);
 	SetStamina(MaxStamina);
 
@@ -53,6 +54,9 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
+	PlayerInputComponent->BindKey(EKeys::B, IE_Pressed, this, &AMainCharacter::TestIncreaseGuilt);
+	PlayerInputComponent->BindKey(EKeys::N, IE_Pressed, this, &AMainCharacter::TestIncreaseBlood);
+
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
 		// �޸��� (Shift)
@@ -83,6 +87,16 @@ void AMainCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 	}
 }
 
+void AMainCharacter::TestIncreaseGuilt()
+{
+	AddGuilt(10.0f);
+}
+
+void AMainCharacter::TestIncreaseBlood()
+{
+	AddBlood(10.0f);
+}
+
 void AMainCharacter::SetGuilt(float NewGuilt)
 {
 	const float OldGuilt = Guilt;
@@ -105,6 +119,7 @@ void AMainCharacter::SetGuilt(float NewGuilt)
 	if (!FMath::IsNearlyEqual(OldGuilt, Guilt))
 	{
 		OnGuiltChanged(Guilt, OldGuilt);
+		OnGuiltChangedBroadcast.Broadcast(Guilt, OldGuilt);
 	}
 }
 
@@ -123,6 +138,23 @@ void AMainCharacter::AddGuilt(float Amount)
 	SetGuilt(Guilt + Amount);
 }
 
+void AMainCharacter::SetInvest(float NewInvest)
+{
+	const float OldInvest = Invest;
+	Invest = FMath::Clamp(NewInvest, 0.0f, 100.0f);
+
+	if (!FMath::IsNearlyEqual(OldInvest, Invest))
+	{
+		OnInvestChanged(Invest, OldInvest);
+		OnInvestChangedBroadcast.Broadcast(Invest, OldInvest);
+	}
+}
+
+void AMainCharacter::AddInvest(float Amount)
+{
+	SetInvest(Invest + Amount);
+}
+
 void AMainCharacter::SetBlood(float NewBlood)
 {
 	const float OldBlood = Blood;
@@ -131,6 +163,7 @@ void AMainCharacter::SetBlood(float NewBlood)
 	if (!FMath::IsNearlyEqual(OldBlood, Blood))
 	{
 		OnBloodChanged(Blood, OldBlood);
+		OnBloodChangedBroadcast.Broadcast(Blood, OldBlood);
 	}
 }
 
@@ -367,5 +400,6 @@ void AMainCharacter::OnDiscoveredByNPC(AActor* NPC)
 
 /* --- Percent ��ȯ ���� --- */
 float AMainCharacter::GetGuiltPercent() const { return Guilt / 100.0f; }
+float AMainCharacter::GetInvestPercent() const { return Invest / 100.0f; }
 float AMainCharacter::GetBloodPercent() const { return MaxBlood > 0.0f ? Blood / MaxBlood : 0.0f; }
 float AMainCharacter::GetStaminaPercent() const { return MaxStamina > 0.0f ? Stamina / MaxStamina : 0.0f; }

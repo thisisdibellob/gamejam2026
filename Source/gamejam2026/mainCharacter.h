@@ -19,6 +19,8 @@ enum class EPermanentState : uint8
 	PureVampire		UMETA(DisplayName = "Pure Vampire (���� ������)")
 };
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FMainCharacterFloatChangedEvent, float, NewValue, float, OldValue);
+
 UCLASS(Blueprintable)
 class AMainCharacter : public Agamejam2026Character
 {
@@ -45,6 +47,9 @@ public:
 	/* --- ���� ���� (ü�� ���ŵ�) --- */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MainCharacter|Status", meta = (ClampMin = "0.0", ClampMax = "100.0"))
 	float Guilt = 50.0f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MainCharacter|Status", meta = (ClampMin = "0.0", ClampMax = "100.0"))
+	float Invest = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Status", meta = (ClampMin = "0.0"))
 	float MaxBlood = 100.0f;
@@ -114,6 +119,12 @@ public:
 	void AddGuilt(float Amount);
 
 	UFUNCTION(BlueprintCallable, Category = "MainCharacter|Status")
+	void SetInvest(float NewInvest);
+
+	UFUNCTION(BlueprintCallable, Category = "MainCharacter|Status")
+	void AddInvest(float Amount);
+
+	UFUNCTION(BlueprintCallable, Category = "MainCharacter|Status")
 	void SetBlood(float NewBlood);
 
 	UFUNCTION(BlueprintCallable, Category = "MainCharacter|Status")
@@ -126,6 +137,9 @@ public:
 	float GetGuiltPercent() const;
 
 	UFUNCTION(BlueprintPure, Category = "MainCharacter|Status")
+	float GetInvestPercent() const;
+
+	UFUNCTION(BlueprintPure, Category = "MainCharacter|Status")
 	float GetBloodPercent() const;
 
 	UFUNCTION(BlueprintPure, Category = "MainCharacter|Sprint")
@@ -136,7 +150,19 @@ public:
 	void OnGuiltChanged(float NewGuilt, float OldGuilt);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "MainCharacter|Events")
+	void OnInvestChanged(float NewInvest, float OldInvest);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "MainCharacter|Events")
 	void OnBloodChanged(float NewBlood, float OldBlood);
+
+	UPROPERTY(BlueprintAssignable, Category = "MainCharacter|Events")
+	FMainCharacterFloatChangedEvent OnGuiltChangedBroadcast;
+
+	UPROPERTY(BlueprintAssignable, Category = "MainCharacter|Events")
+	FMainCharacterFloatChangedEvent OnInvestChangedBroadcast;
+
+	UPROPERTY(BlueprintAssignable, Category = "MainCharacter|Events")
+	FMainCharacterFloatChangedEvent OnBloodChangedBroadcast;
 
 	UFUNCTION(BlueprintImplementableEvent, Category = "MainCharacter|Events")
 	void OnVampireChanged(bool bNewIsVampire);
@@ -175,6 +201,12 @@ protected:
 
 	UFUNCTION(BlueprintCallable, Category = "MainCharacter|Skills")
 	void PerformKill();    // R
+
+	UFUNCTION(BlueprintCallable, Category = "MainCharacter|Debug")
+	void TestIncreaseGuilt();
+
+	UFUNCTION(BlueprintCallable, Category = "MainCharacter|Debug")
+	void TestIncreaseBlood();
 
 	// �ý��� ����
 	void ScheduleNextTransformation();
