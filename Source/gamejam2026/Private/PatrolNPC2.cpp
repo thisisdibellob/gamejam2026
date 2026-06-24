@@ -1,0 +1,233 @@
+#include "Kismet/GameplayStatics.h"
+#include "DrawDebugHelpers.h"
+#include "PatrolNPC2.h"
+
+
+APatrolNPC2::APatrolNPC2()
+{
+	// 매 프레임 이동과 대기 상태를 갱신해야 하므로 Tick을 켬
+	PrimaryActorTick.bCanEverTick = true;
+}
+
+void APatrolNPC2::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// NPC가 레벨에 놓인 현재 위치를 기준으로 순찰 시작점과 끝점을 계산
+	SetupPatrolPoints();
+
+	// 순찰이 꺼져 있거나 이동 거리가 0이면 가만히 둠
+	if (!bCanPatrol || PatrolDistance <= 0.0f)
+	{
+		SetNPCState(EPatrolNPC2State::Idle);
+		return;
+	}
+
+	// 게임 시작 후 먼저 끝 위치로 이동
+	SetNPCState(EPatrolNPC2State::MovingToEnd);
+}
+
+void APatrolNPC2::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	// 순찰이 꺼졌거나 기절 상태면 이동 로직을 실행하지 않음
+	if (!bCanPatrol || CurrentState == EPatrolNPC2State::Stunned)
+	{
+		return;
+	}
+
+	// 현재 상태에 따라 이동 또는 대기 처리
+	switch (CurrentState)
+	{
+	case EPatrolNPC2State::MovingToEnd:
+		MoveToTarget(EndLocation, DeltaTime);
+		break;
+
+	case EPatrolNPC2State::MovingToStart:
+		MoveToTarget(StartLocation, DeltaTime);
+		break;
+
+	case EPatrolNPC2State::WaitingAtEnd:
+	case EPatrolNPC2State::WaitingAtStart:
+		UpdateWaiting(DeltaTime);
+		break;
+
+	default:
+		break;
+	}
+
+	CheckPlayerDetection();
+}
+
+void APatrolNPC2::SetupPatrolPoints()
+{
+	// 시작 위치는 BeginPlay 시점의 액터 위치
+	StartLocation = GetActorLocation();
+
+	FVector Offset = FVector::ZeroVector;
+
+	// 언리얼 기본 좌표 기준:
+	// X축 이동을 Horizontal, Y축 이동을 Vertical로 사용
+	if (PatrolDirection == EPatrolNPC2Direction::Horizontal)
+	{
+		Offset = FVector(PatrolDistance, 0.0f, 0.0f);
+	}
+	else
+	{
+		Offset = FVector(0.0f, PatrolDistance, 0.0f);
+	}
+
+	// 순찰 끝 위치 계산
+	EndLocation = StartLocation + Offset;
+}
+
+void APatrolNPC2::MoveToTarget(const FVector& TargetLocation, float DeltaTime)
+{
+	const FVector CurrentLocation = GetActorLocation();
+
+	const FVector MoveDirection = TargetLocation - CurrentLocation;
+	const FVector FlatMoveDirection = FVector(MoveDirection.X, MoveDirection.Y, 0.0f);
+
+	if (!FlatMoveDirection.IsNearlyZero())
+	{
+		const FRotator TargetRotation = FlatMoveDirection.Rotation();
+		SetActorRotation(TargetRotation);
+	}
+
+	// VInterpConstantTo는 PatrolSpeed에 맞춰 일정한 속도로 목표 지점까지 이동시켜 줌
+	const FVector NewLocation = FMath::VInterpConstantTo(
+		CurrentLocation,
+		TargetLocation,
+		DeltaTime,
+		PatrolSpeed
+	);
+
+	// Sweep을 false로 두면 충돌 검사 없이 위치를 이동함
+	// 포켓몬식 정해진 경로 이동에는 이쪽이 단순함
+	SetActorLocation(NewLocation, false);
+
+	// 목표 지점에 거의 도착했는지 확인
+	if (FVector::Dist(NewLocation, TargetLocation) <= 1.0f)
+	{
+		// 미세한 위치 오차를 없애기 위해 정확히 목표 위치에 맞춤
+		SetActorLocation(TargetLocation, false);
+
+		// 끝 위치에 도착했다면 대기 후 시작점으로 돌아감
+		if (CurrentState == EPatrolNPC2State::MovingToEnd)
+		{
+			WaitTimer = WaitTime;
+			SetNPCState(EPatrolNPC2State::WaitingAtEnd);
+		}
+		// 시작 위치에 도착했다면 대기 후 다시 끝 위치로 감
+		else if (CurrentState == EPatrolNPC2State::MovingToStart)
+		{
+			WaitTimer = WaitTime;
+			SetNPCState(EPatrolNPC2State::WaitingAtStart);
+		}
+	}
+}
+
+void APatrolNPC2::UpdateWaiting(float DeltaTime)
+{
+	// 대기 시간을 매 프레임 감소시킴
+	WaitTimer -= DeltaTime;
+
+	if (WaitTimer > 0.0f)
+	{
+		return;
+	}
+
+	// 음수로 내려간 타이머를 정리
+	WaitTimer = 0.0f;
+
+	// 끝에서 기다린 뒤에는 시작점으로 돌아감
+	if (CurrentState == EPatrolNPC2State::WaitingAtEnd)
+	{
+		SetNPCState(EPatrolNPC2State::MovingToStart);
+	}
+	// 시작점에서 기다린 뒤에는 끝점으로 이동
+	else if (CurrentState == EPatrolNPC2State::WaitingAtStart)
+	{
+		SetNPCState(EPatrolNPC2State::MovingToEnd);
+	}
+}
+
+void APatrolNPC2::SetNPCState(EPatrolNPC2State NewState)
+{
+	// 상태 변경을 한 함수에 모아두면,
+	// 나중에 상태 변경 이벤트나 로그를 붙이기 쉬움
+	CurrentState = NewState;
+
+	UE_LOG(LogTemp, Warning, TEXT("PatrolNPC2 State Changed: %d"), static_cast<int32>(CurrentState));
+}
+
+void APatrolNPC2::CheckPlayerDetection()
+{
+	if (!bEnablePlayerDetection)
+	{
+		return;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!PlayerPawn)
+	{
+		return;
+	}
+
+	const FVector TraceStart = GetActorLocation() + FVector(0.0f, 0.0f, 50.0f);
+	const FVector TraceEnd = TraceStart + (GetActorForwardVector() * DetectionDistance);
+
+	FHitResult HitResult;
+
+	FCollisionQueryParams QueryParams;
+	QueryParams.AddIgnoredActor(this);
+
+	const bool bHit = World->LineTraceSingleByChannel(
+		HitResult,
+		TraceStart,
+		TraceEnd,
+		ECC_Visibility,
+		QueryParams
+	);
+
+	AActor* HitActor = nullptr;
+	bool bHitPlayer = false;
+
+	if (bHit)
+	{
+		HitActor = HitResult.GetActor();
+		bHitPlayer = (HitActor == PlayerPawn);
+	}
+
+	if (bDrawDebugDetection)
+	{
+		// 플레이어를 맞췄을 때만 빨간색
+		// 벽이나 다른 물체를 맞았거나 아무것도 안 맞으면 초록색
+		const FColor LineColor = bHitPlayer ? FColor::Red : FColor::Green;
+
+		DrawDebugLine(
+			World,
+			TraceStart,
+			TraceEnd,
+			LineColor,
+			false,
+			0.0f,
+			0,
+			2.0f
+		);
+	}
+
+	if (!bHitPlayer)
+	{
+		return;
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("Player detected by PatrolNPC2 raycast!"));
+}
