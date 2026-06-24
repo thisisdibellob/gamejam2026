@@ -94,10 +94,10 @@ public:
 
 	/* --- ��ų �� ��Ÿ�� --- */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Skills")
-	float InspectCooldown = 3.0f;
+	float InspectCooldown = 10.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Skills")
-	float KillCooldown = 5.0f;
+	float KillCooldown = 7.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Skills")
 	float InteractRadius = 150.0f; // NPC �˻� �ݰ�

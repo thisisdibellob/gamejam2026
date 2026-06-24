@@ -142,7 +142,7 @@ protected:
 	bool bHasDiscoveredPlayer = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Detection", meta = (ClampMin = "0.0"))
-	float RequiredPlayerDetectionTime = 2.0f;
+	float RequiredPlayerDetectionTime = 1.0f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC|Detection")
 	float PlayerDetectionTimer = 0.0f;
