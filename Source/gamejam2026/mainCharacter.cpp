@@ -6,6 +6,7 @@
 #include "InputCoreTypes.h"
 #include "TimerManager.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Public/PatrolNPC2.h"
 #include "Engine/World.h"
 
 AMainCharacter::AMainCharacter()
@@ -247,6 +248,11 @@ void AMainCharacter::PerformStun()
 	AActor* TargetNPC = GetClosestNPC();
 	if (TargetNPC)
 	{
+		if (APatrolNPC2* PatrolNPC = Cast<APatrolNPC2>(TargetNPC))
+		{
+			PatrolNPC->SetStunned(true);
+		}
+
 		OnStunNPC(TargetNPC);
 	}
 }

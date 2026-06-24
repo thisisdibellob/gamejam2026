@@ -33,19 +33,20 @@ void APatrolNPC2::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (CurrentState == EPatrolNPC2State::Stunned)
-	{
-		return;
-	}
-
 	if (bIsRespawning)
 	{
 		return;
 	}
 
+	if  (CurrentState == EPatrolNPC2State::Stunned)
+	{
+		bIsDetectingPlayer = false;
+		PlayerDetectionTimer = 0.0f;
+		return;
+	}
+
 	CheckPlayerDetection(DeltaTime);
 
-	// 순찰이 꺼졌거나 플레이어를 감지 중이면 이동 로직을 실행하지 않음
 	if (!bCanPatrol || bIsDetectingPlayer)
 	{
 		return;
@@ -174,6 +175,14 @@ void APatrolNPC2::SetNPCState(EPatrolNPC2State NewState)
 
 void APatrolNPC2::CheckPlayerDetection(float DeltaTime)
 {
+
+	if (CurrentState == EPatrolNPC2State::Stunned || bIsRespawning)
+	{
+		bIsDetectingPlayer = false;
+		PlayerDetectionTimer = 0.0f;
+		return;
+	}
+
 	if (!bEnablePlayerDetection || bHasDiscoveredPlayer)
 	{
 		bIsDetectingPlayer = false;
@@ -292,6 +301,11 @@ void APatrolNPC2::CheckPlayerDetection(float DeltaTime)
 
 void APatrolNPC2::DisableAndRespawn()
 {
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(StunTimerHandle);
+	}
+
 	if (bIsRespawning)
 	{
 		return;
@@ -351,4 +365,65 @@ void APatrolNPC2::FinishRespawn()
 	SetupPatrolPoints();
 
 	SetNPCState(EPatrolNPC2State::MovingToEnd);
+}
+
+bool APatrolNPC2::IsMovingForAnimation() const
+{
+	return CurrentState == EPatrolNPC2State::MovingToEnd ||
+		CurrentState == EPatrolNPC2State::MovingToStart;
+}
+
+void APatrolNPC2::SetStunned(bool bNewStunned)
+{
+	UWorld* World = GetWorld();
+
+	if (bNewStunned)
+	{
+		SetNPCState(EPatrolNPC2State::Stunned);
+
+		bCanPatrol = false;
+		bEnablePlayerDetection = false;
+		bIsDetectingPlayer = false;
+		PlayerDetectionTimer = 0.0f;
+
+		if (World)
+		{
+			World->GetTimerManager().ClearTimer(StunTimerHandle);
+			World->GetTimerManager().SetTimer(
+				StunTimerHandle,
+				this,
+				&APatrolNPC2::RecoverFromStun,
+				StunDuration,
+				false
+			);
+		}
+
+		return;
+	}
+
+	RecoverFromStun();
+}
+
+void APatrolNPC2::RecoverFromStun()
+{
+	if (bIsRespawning)
+	{
+		return;
+	}
+
+	bCanPatrol = true;
+	bEnablePlayerDetection = true;
+	bIsDetectingPlayer = false;
+	PlayerDetectionTimer = 0.0f;
+
+	// 현재 위치 기준으로 다시 순찰 포인트를 잡고 싶지 않으면 이 줄은 빼도 됨
+	// 원래 StartLocation 기준으로 계속 돌 거면 SetupPatrolPoints() 호출하지 마.
+	if (FVector::Dist(GetActorLocation(), EndLocation) < FVector::Dist(GetActorLocation(), StartLocation))
+	{
+		SetNPCState(EPatrolNPC2State::MovingToStart);
+	}
+	else
+	{
+		SetNPCState(EPatrolNPC2State::MovingToEnd);
+	}
 }
