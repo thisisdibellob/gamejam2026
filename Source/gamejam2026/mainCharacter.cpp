@@ -301,6 +301,11 @@ void AMainCharacter::PerformInspect()
 	if (TargetNPC)
 	{
 		LastInspectTime = CurrentTime;
+		if (APatrolNPC2* PatrolNPC = Cast<APatrolNPC2>(TargetNPC))
+		{
+			PatrolNPC->ShowKnotByCrimeState();
+		}
+
 		OnInspectNPC(TargetNPC);
 	}
 }

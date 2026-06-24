@@ -6,6 +6,8 @@
 #include "Sound/SoundBase.h"
 #include "PatrolNPC2.generated.h"
 
+class UWidgetComponent;
+
 // NPC가 어느 방향으로 왕복 이동할지 정하는 enum
 UENUM(BlueprintType)
 enum class EPatrolNPC2Direction : uint8
@@ -51,6 +53,15 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "NPC|Status")
 	void SetStunned(bool bNewStunned);
+
+	UFUNCTION(BlueprintCallable, Category = "NPC|Knot")
+	void ShowKnotPos();
+
+	UFUNCTION(BlueprintCallable, Category = "NPC|Knot")
+	void ShowKnotNeg();
+
+	UFUNCTION(BlueprintCallable, Category = "NPC|Knot")
+	void ShowKnotByCrimeState();
 
 	// NPC가 공격당했을 때 호출.
 	// 실제 Destroy 대신 숨겼다가 RespawnDelay 후 StartLocation에서 다시 활성화함.
@@ -215,4 +226,7 @@ private:
 
 	// NPC가 바라보는 방향으로 레이캐스트를 쏴서 플레이어를 감지함
 	void CheckPlayerDetection(float DeltaTime);
+
+	UWidgetComponent* GetKnotWidgetComponent() const;
+	void ShowKnotWithWidgetFunction(FName WidgetFunctionName);
 };

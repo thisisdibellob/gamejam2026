@@ -2,7 +2,9 @@
 #include "GameSystemSubsystem.h"
 #include "../mainCharacter.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Components/WidgetComponent.h"
 #include "Animation/AnimInstance.h"
+#include "Blueprint/UserWidget.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -18,6 +20,11 @@ void APatrolNPC2::BeginPlay()
 	Super::BeginPlay();
 
 	isCrim = FMath::FRand() <= CriminalSpawnChance;
+
+	if (UWidgetComponent* KnotWidget = GetKnotWidgetComponent())
+	{
+		KnotWidget->SetVisibility(false);
+	}
 
 	// NPC가 레벨에 놓인 현재 위치를 기준으로 순찰 시작점과 끝점을 계산
 	SetupPatrolPoints();
@@ -106,6 +113,72 @@ void APatrolNPC2::SetupPatrolPoints()
 
 	// 순찰 끝 위치 계산
 	EndLocation = StartLocation + Offset;
+}
+
+void APatrolNPC2::ShowKnotPos()
+{
+	ShowKnotWithWidgetFunction(FName(TEXT("SetPosImage")));
+}
+
+void APatrolNPC2::ShowKnotNeg()
+{
+	ShowKnotWithWidgetFunction(FName(TEXT("SetNegImage")));
+}
+
+void APatrolNPC2::ShowKnotByCrimeState()
+{
+	if (isCrim)
+	{
+		ShowKnotNeg();
+	}
+	else
+	{
+		ShowKnotPos();
+	}
+}
+
+UWidgetComponent* APatrolNPC2::GetKnotWidgetComponent() const
+{
+	TArray<UWidgetComponent*> WidgetComponents;
+	GetComponents<UWidgetComponent>(WidgetComponents);
+
+	for (UWidgetComponent* WidgetComponent : WidgetComponents)
+	{
+		if (WidgetComponent && WidgetComponent->GetName().Equals(TEXT("Widget"), ESearchCase::IgnoreCase))
+		{
+			return WidgetComponent;
+		}
+	}
+
+	return WidgetComponents.Num() > 0 ? WidgetComponents[0] : nullptr;
+}
+
+void APatrolNPC2::ShowKnotWithWidgetFunction(FName WidgetFunctionName)
+{
+	UWidgetComponent* KnotWidget = GetKnotWidgetComponent();
+	if (!KnotWidget)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[PatrolNPC2] Knot widget component was not found."));
+		return;
+	}
+
+	KnotWidget->SetVisibility(true);
+
+	UUserWidget* UserWidget = KnotWidget->GetUserWidgetObject();
+	if (!UserWidget)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[PatrolNPC2] Knot user widget object was not found."));
+		return;
+	}
+
+	if (UFunction* WidgetFunction = UserWidget->FindFunction(WidgetFunctionName))
+	{
+		UserWidget->ProcessEvent(WidgetFunction, nullptr);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[PatrolNPC2] Knot widget function was not found: %s"), *WidgetFunctionName.ToString());
+	}
 }
 
 void APatrolNPC2::MoveToTarget(const FVector& TargetLocation, float DeltaTime)
