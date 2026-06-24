@@ -101,6 +101,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC|Detection")
 	bool bHasDiscoveredPlayer = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Status")
+	bool isCrim = false;
+
 private:
 	// 시작 위치와 끝 위치를 계산함
 	void SetupPatrolPoints();

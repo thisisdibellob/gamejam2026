@@ -1,7 +1,7 @@
-#include "Kismet/GameplayStatics.h"
-#include "DrawDebugHelpers.h"
-#include "../MainCharacter.h"
 #include "PatrolNPC2.h"
+#include "../mainCharacter.h"
+#include "DrawDebugHelpers.h"
+#include "Kismet/GameplayStatics.h"
 
 
 APatrolNPC2::APatrolNPC2()
