@@ -31,6 +31,18 @@ class GAMEJAM2026_API APatrolNPC2 : public ACharacter
 	GENERATED_BODY()
 
 public:
+
+	UFUNCTION(BlueprintCallable, Category = "NPC|Status")
+	void SetStunned(bool bNewStunned);
+
+	UFUNCTION(BlueprintPure, Category = "NPC|Animation")
+	bool IsMovingForAnimation() const;
+
+	// NPC가 공격당했을 때 호출.
+	// 실제 Destroy 대신 숨겼다가 RespawnDelay 후 StartLocation에서 다시 활성화함.
+	UFUNCTION(BlueprintCallable, Category = "NPC|Respawn")
+	void DisableAndRespawn();
+
 	APatrolNPC2();
 
 protected:
@@ -40,6 +52,11 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 protected:
+
+	// 스턴이 유지되는 시간
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Status", meta = (ClampMin = "0.0"))
+	float StunDuration = 3.0f;
+
 	// 레벨에 배치한 NPC마다 좌우/상하 이동 방향을 설정할 수 있음
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Patrol")
 	EPatrolNPC2Direction PatrolDirection = EPatrolNPC2Direction::Horizontal;
@@ -113,7 +130,26 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Status")
 	bool isCrim = false;
 
+	// 공격당해서 사라진 뒤 다시 나타나기까지 걸리는 시간
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Respawn", meta = (ClampMin = "0.0"))
+	float RespawnDelay = 3.0f;
+
+	// 현재 리스폰 대기 중인지 여부
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC|Respawn")
+	bool bIsRespawning = false;
+
 private:
+
+	FTimerHandle StunTimerHandle;
+
+	// 스턴 시간이 끝났을 때 다시 순찰/감지를 켬
+	void RecoverFromStun();
+
+	FTimerHandle RespawnTimerHandle;
+
+	// RespawnDelay 후 호출되어 NPC를 다시 활성화함
+	void FinishRespawn();
+
 	// 시작 위치와 끝 위치를 계산함
 	void SetupPatrolPoints();
 

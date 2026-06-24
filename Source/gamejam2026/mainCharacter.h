@@ -182,7 +182,10 @@ protected:
 
 	// ���� ����� NPC Ž�� ���� �Լ�
 	AActor* GetClosestNPC();
-
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Animations")
+	UAnimMontage* KillMontage; // 여기서 몽타주를 저장할 변수를 만듭니다.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Animations")
+	UAnimMontage* TransformMontage;
 private:
 	FTimerHandle TransformTimerHandle;
 	float LastInspectTime = -999.0f;
