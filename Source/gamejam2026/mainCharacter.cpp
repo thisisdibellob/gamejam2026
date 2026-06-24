@@ -6,6 +6,7 @@
 #include "InputCoreTypes.h"
 #include "TimerManager.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Kismet/GameplayStatics.h"
 #include "Public/PatrolNPC2.h"
 #include "Engine/World.h"
 
@@ -193,6 +194,11 @@ void AMainCharacter::SetIsVampire(bool bNewIsVampire)
 
 	if (bIsVampire)
 	{
+		if (TransformSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, TransformSound, GetActorLocation());
+		}
+
 		UE_LOG(LogTemp, Warning, TEXT("[System] Transformed into a Vampire! Will revert to Human in 30 seconds."));
 
 		if (bIsSprinting) StopSprint();
@@ -210,11 +216,18 @@ void AMainCharacter::SetIsVampire(bool bNewIsVampire)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[System] Reverted to Human. Awaiting next transformation."));
 
+		if (RevertTransformSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, RevertTransformSound, GetActorLocation());
+		}
+
+
 		GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 		ScheduleNextTransformation(); // �ΰ��� �Ǿ����Ƿ� ���� ���� �����ٸ�
 	}
 
 	OnVampireChanged(bIsVampire);
+	OnVampireChangedBroadcast.Broadcast(bIsVampire);
 }
 
 /* --- �޸��� ���� --- */
@@ -285,6 +298,18 @@ void AMainCharacter::PerformInspect()
 
 void AMainCharacter::PerformStun()
 {
+	if (!bIsVampire) return;
+
+	if (AttackSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, AttackSound, GetActorLocation());
+	}
+
+	if (StunMontage)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Playing StunMontage!")); // 이 로그가 찍히는지 확인!
+		PlayAnimMontage(StunMontage);
+	}
 	AActor* TargetNPC = GetClosestNPC();
 	if (TargetNPC)
 	{
@@ -299,11 +324,18 @@ void AMainCharacter::PerformStun()
 
 void AMainCharacter::PerformKill()
 {
+	if (!bIsVampire) return;
+
 	float CurrentTime = GetWorld()->GetTimeSeconds();
 	if (CurrentTime - LastKillTime < KillCooldown)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Cooling down..."));
 		return;
+	}
+
+	if (AttackSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, AttackSound, GetActorLocation());
 	}
 
 	if (KillMontage)
@@ -324,6 +356,9 @@ void AMainCharacter::PerformKill()
 		// 할당되지 않았는데 재생하려고 하면 게임이 튕길 수 있어서 꼭 검사해야 해요!
 		
 
+		UE_LOG(LogTemp, Warning, TEXT("[MainCharacter] NPC killed broadcast fired."));
+		OnNPCKilledBroadcast.Broadcast(TargetNPC);
+		OnNPCKilledSimpleBroadcast.Broadcast();
 		OnKillNPC(TargetNPC);
 	}
 }
@@ -387,7 +422,19 @@ void AMainCharacter::TransformToVampire()
 
 void AMainCharacter::OnDiscoveredByNPC(AActor* NPC)
 {
+
+	UE_LOG(LogTemp, Warning, TEXT("[OnDiscoveredByNPC] bIsDead=%d bIsVampire=%d"),
+		bIsDead,
+		bIsVampire
+	);
+
 	if (bIsDead) return;
+
+	if (!bIsVampire)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[System] Discovered by NPC, but player is human. No game over."));
+		return;
+	}
 
 	if (bIsVampire)
 	{

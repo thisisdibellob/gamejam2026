@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Animation/AnimMontage.h"
+#include "Sound/SoundBase.h"
 #include "PatrolNPC2.generated.h"
 
 // NPC가 어느 방향으로 왕복 이동할지 정하는 enum
@@ -33,6 +34,11 @@ class GAMEJAM2026_API APatrolNPC2 : public ACharacter
 	GENERATED_BODY()
 
 public:
+	UFUNCTION(BlueprintImplementableEvent, Category = "NPC|Events")
+	void OnNPCStunStarted();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = "NPC|Events")
+	void OnNPCDeathStarted();
 
 	UFUNCTION(BlueprintPure, Category = "NPC|Animation")
 	bool IsWalkingForAnimation() const;
@@ -60,6 +66,16 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 protected:
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Sound")
+	USoundBase* HitSound = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Sound")
+	USoundBase* StunSound = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Sound")
+	USoundBase* DeathScreamSound = nullptr;
+
 	// 리스폰될 때 범죄자로 설정될 확률. 0.3이면 30%
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Status", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float CriminalSpawnChance = 0.3f;
@@ -142,7 +158,7 @@ protected:
 	bool bHasDiscoveredPlayer = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Detection", meta = (ClampMin = "0.0"))
-	float RequiredPlayerDetectionTime = 2.0f;
+	float RequiredPlayerDetectionTime = 1.0f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC|Detection")
 	float PlayerDetectionTimer = 0.0f;

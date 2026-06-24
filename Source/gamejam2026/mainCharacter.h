@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "gamejam2026Character.h"
 #include "InputAction.h"
+#include "Sound/SoundBase.h"
 #include "mainCharacter.generated.h"
 
 class UInputAction;
@@ -20,6 +21,9 @@ enum class EPermanentState : uint8
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FMainCharacterFloatChangedEvent, float, NewValue, float, OldValue);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMainCharacterBoolChangedEvent, bool, bNewValue);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMainCharacterActorEvent, AActor*, TargetActor);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FMainCharacterSimpleEvent);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FNearbyNPCChangedEvent, bool, bHasNearbyNPC, AActor*, NearbyNPC);
 
 UCLASS(Blueprintable)
@@ -91,10 +95,10 @@ public:
 
 	/* --- ��ų �� ��Ÿ�� --- */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Skills")
-	float InspectCooldown = 3.0f;
+	float InspectCooldown = 10.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Skills")
-	float KillCooldown = 5.0f;
+	float KillCooldown = 7.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Skills")
 	float InteractRadius = 150.0f; // NPC �˻� �ݰ�
@@ -168,6 +172,15 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "MainCharacter|Events")
 	FNearbyNPCChangedEvent OnNearbyNPCChangedBroadcast;
 
+	UPROPERTY(BlueprintAssignable, Category = "MainCharacter|Events")
+	FMainCharacterBoolChangedEvent OnVampireChangedBroadcast;
+
+	UPROPERTY(BlueprintAssignable, Category = "MainCharacter|Events")
+	FMainCharacterActorEvent OnNPCKilledBroadcast;
+
+	UPROPERTY(BlueprintAssignable, Category = "MainCharacter|Events")
+	FMainCharacterSimpleEvent OnNPCKilledSimpleBroadcast;
+
 	UFUNCTION(BlueprintImplementableEvent, Category = "MainCharacter|Events")
 	void OnVampireChanged(bool bNewIsVampire);
 
@@ -189,6 +202,15 @@ protected:
 
 	void UpdateSprint(float DeltaSeconds);
 	void SetStamina(float NewStamina);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Sound")
+	USoundBase* AttackSound = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Sound")
+	USoundBase* TransformSound = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Sound")
+	USoundBase* RevertTransformSound = nullptr;
 
 	/* --- �������Ʈ���� ȣ�� �����ϵ��� UFUNCTION �߰��� --- */
 	UFUNCTION(BlueprintCallable, Category = "MainCharacter|Sprint")
@@ -222,6 +244,8 @@ protected:
 	UAnimMontage* KillMontage; // 여기서 몽타주를 저장할 변수를 만듭니다.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Animations")
 	UAnimMontage* TransformMontage;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Animations")
+	UAnimMontage* StunMontage;
 private:
 	FTimerHandle TransformTimerHandle;
 	UPROPERTY()

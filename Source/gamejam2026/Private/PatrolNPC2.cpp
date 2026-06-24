@@ -330,6 +330,18 @@ void APatrolNPC2::DisableAndRespawn()
 
 	SetNPCState(EPatrolNPC2State::Dead);
 
+	OnNPCDeathStarted();
+
+	if (HitSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, HitSound, GetActorLocation());
+	}
+
+	if (DeathScreamSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, DeathScreamSound, GetActorLocation());
+	}
+
 	bCanPatrol = false;
 	bEnablePlayerDetection = false;
 	bIsDetectingPlayer = false;
@@ -419,17 +431,24 @@ void APatrolNPC2::SetStunned(bool bNewStunned)
 
 	if (bNewStunned)
 	{
+		if (StunSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, StunSound, GetActorLocation());
+		}
+
 		FrozenLocation = GetActorLocation();
 
 		SetActorLocation(FrozenLocation, false);
 		SetNPCState(EPatrolNPC2State::Stunned);
+
+		OnNPCStunStarted();
 
 		bCanPatrol = false;
 		bEnablePlayerDetection = false;
 		bIsDetectingPlayer = false;
 		PlayerDetectionTimer = 0.0f;
 
-		GetCharacterMovement()->StopMovementImmediately();
+		GetCharacterMovement()->StopMovementImmediately(); 
 		GetCharacterMovement()->DisableMovement();
 
 		if (StunMontage)
@@ -443,7 +462,7 @@ void APatrolNPC2::SetStunned(bool bNewStunned)
 		if (World)
 		{
 			World->GetTimerManager().ClearTimer(StunTimerHandle);
-			World->GetTimerManager().SetTimer(
+			World->GetTimerManager().SetTimer( 
 				StunTimerHandle,
 				this,
 				&APatrolNPC2::RecoverFromStun,
