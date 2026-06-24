@@ -2,6 +2,9 @@
 #include "GameSystemSubsystem.h"
 #include "../mainCharacter.h"
 #include "DrawDebugHelpers.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "Animation/AnimInstance.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 
@@ -14,6 +17,8 @@ APatrolNPC2::APatrolNPC2()
 void APatrolNPC2::BeginPlay()
 {
 	Super::BeginPlay();
+
+	isCrim = FMath::FRand() <= CriminalSpawnChance;
 
 	// NPC가 레벨에 놓인 현재 위치를 기준으로 순찰 시작점과 끝점을 계산
 	SetupPatrolPoints();
@@ -33,15 +38,24 @@ void APatrolNPC2::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (bIsRespawning)
+	if (CurrentState == EPatrolNPC2State::Stunned)
 	{
+		SetActorLocation(FrozenLocation, false);
+		bIsDetectingPlayer = false;
+		PlayerDetectionTimer = 0.0f;
 		return;
 	}
 
-	if  (CurrentState == EPatrolNPC2State::Stunned)
+	if (CurrentState == EPatrolNPC2State::Dead)
 	{
+		SetActorLocation(FrozenLocation, false);
 		bIsDetectingPlayer = false;
 		PlayerDetectionTimer = 0.0f;
+		return;
+	}
+
+	if (bIsRespawning)
+	{
 		return;
 	}
 
@@ -97,6 +111,11 @@ void APatrolNPC2::SetupPatrolPoints()
 
 void APatrolNPC2::MoveToTarget(const FVector& TargetLocation, float DeltaTime)
 {
+	if (CurrentState == EPatrolNPC2State::Stunned || CurrentState == EPatrolNPC2State::Dead)
+	{
+		return;
+	}
+
 	const FVector CurrentLocation = GetActorLocation();
 
 	const FVector MoveDirection = TargetLocation - CurrentLocation;
@@ -301,44 +320,60 @@ void APatrolNPC2::CheckPlayerDetection(float DeltaTime)
 
 void APatrolNPC2::DisableAndRespawn()
 {
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().ClearTimer(StunTimerHandle);
-	}
-
 	if (bIsRespawning)
 	{
 		return;
 	}
 
 	bIsRespawning = true;
+	FrozenLocation = GetActorLocation();
 
-	// 순찰과 감지를 멈춤
+	SetNPCState(EPatrolNPC2State::Dead);
+
 	bCanPatrol = false;
 	bEnablePlayerDetection = false;
-	SetNPCState(EPatrolNPC2State::Idle);
+	bIsDetectingPlayer = false;
+	PlayerDetectionTimer = 0.0f;
 
-	// 화면에서 숨기고 충돌을 꺼서 플레이어와 상호작용하지 않게 함
-	SetActorHiddenInGame(true);
+	SetActorLocation(FrozenLocation, false);
 	SetActorEnableCollision(false);
 
-	// Tick을 끄기 전에 타이머를 먼저 예약
 	UWorld* World = GetWorld();
 	if (!World)
 	{
 		return;
 	}
 
+	float MontageDuration = DeathHideDelay - 1.0f;
+
+	if (DeathMontage)
+	{
+		if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+		{
+			MontageDuration = AnimInstance->Montage_Play(DeathMontage);
+		}
+	}
+
+	// 몽타주가 끝나서 Idle로 돌아가기 직전에 숨김
+	const float HideDelay = FMath::Max(MontageDuration - 0.05f, 0.0f);
+
+	World->GetTimerManager().ClearTimer(FreezeDeathPoseTimerHandle);
 	World->GetTimerManager().SetTimer(
-		RespawnTimerHandle,
+		FreezeDeathPoseTimerHandle,
 		this,
-		&APatrolNPC2::FinishRespawn,
-		RespawnDelay,
+		&APatrolNPC2::FreezeDeathPose,
+		HideDelay,
 		false
 	);
 
-	// Tick을 꺼서 이동/감지 로직을 완전히 멈춤
-	SetActorTickEnabled(false);
+	World->GetTimerManager().ClearTimer(DeathHideTimerHandle);
+	World->GetTimerManager().SetTimer(
+		DeathHideTimerHandle,
+		this,
+		&APatrolNPC2::HideAfterDeathAnimation,
+		HideDelay,
+		false
+	);
 }
 
 void APatrolNPC2::FinishRespawn()
@@ -350,6 +385,10 @@ void APatrolNPC2::FinishRespawn()
 	WaitTimer = 0.0f;
 	bIsRespawning = false;
 	bHasDiscoveredPlayer = false;
+	bIsDetectingPlayer = false;
+	PlayerDetectionTimer = 0.0f;
+
+	isCrim = FMath::FRand() <= CriminalSpawnChance;
 
 	// 다시 보이게 하고 충돌/순찰/감지를 켬
 	SetActorHiddenInGame(false);
@@ -357,17 +396,18 @@ void APatrolNPC2::FinishRespawn()
 
 	bCanPatrol = true;
 	bEnablePlayerDetection = true;
-
+	GetMesh()->bPauseAnims = false;
 	// Tick을 다시 켜야 이동과 감지가 재개됨
 	SetActorTickEnabled(true);
 
-	// 현재 위치 기준으로 순찰 포인트를 다시 계산
+	// 순찰 포인트 재계산
 	SetupPatrolPoints();
 
 	SetNPCState(EPatrolNPC2State::MovingToEnd);
+
 }
 
-bool APatrolNPC2::IsMovingForAnimation() const
+bool APatrolNPC2::IsWalkingForAnimation() const
 {
 	return CurrentState == EPatrolNPC2State::MovingToEnd ||
 		CurrentState == EPatrolNPC2State::MovingToStart;
@@ -379,12 +419,26 @@ void APatrolNPC2::SetStunned(bool bNewStunned)
 
 	if (bNewStunned)
 	{
+		FrozenLocation = GetActorLocation();
+
+		SetActorLocation(FrozenLocation, false);
 		SetNPCState(EPatrolNPC2State::Stunned);
 
 		bCanPatrol = false;
 		bEnablePlayerDetection = false;
 		bIsDetectingPlayer = false;
 		PlayerDetectionTimer = 0.0f;
+
+		GetCharacterMovement()->StopMovementImmediately();
+		GetCharacterMovement()->DisableMovement();
+
+		if (StunMontage)
+		{
+			if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+			{
+				AnimInstance->Montage_Play(StunMontage);
+			}
+		}
 
 		if (World)
 		{
@@ -406,24 +460,83 @@ void APatrolNPC2::SetStunned(bool bNewStunned)
 
 void APatrolNPC2::RecoverFromStun()
 {
-	if (bIsRespawning)
+	if (bIsRespawning || CurrentState == EPatrolNPC2State::Dead)
 	{
 		return;
 	}
 
+	// 스턴 당한 그 자리에서 깨어남
+	SetActorLocation(FrozenLocation, false);
+
+	GetMesh()->bPauseAnims = false;
+
+	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	GetCharacterMovement()->StopMovementImmediately();
+
 	bCanPatrol = true;
+
 	bEnablePlayerDetection = true;
+	bHasDiscoveredPlayer = false;
 	bIsDetectingPlayer = false;
 	PlayerDetectionTimer = 0.0f;
 
-	// 현재 위치 기준으로 다시 순찰 포인트를 잡고 싶지 않으면 이 줄은 빼도 됨
-	// 원래 StartLocation 기준으로 계속 돌 거면 SetupPatrolPoints() 호출하지 마.
-	if (FVector::Dist(GetActorLocation(), EndLocation) < FVector::Dist(GetActorLocation(), StartLocation))
-	{
-		SetNPCState(EPatrolNPC2State::MovingToStart);
-	}
-	else
+	// 중요:
+	// 여기서 StartLocation / EndLocation 재계산하지 말 것.
+	// 원래 순찰 범위를 유지해야 함.
+
+	// 현재 위치에서 더 가까운 순찰 지점으로 이동 재개
+	const float DistanceToStart = FVector::Dist(GetActorLocation(), StartLocation);
+	const float DistanceToEnd = FVector::Dist(GetActorLocation(), EndLocation);
+
+	if (DistanceToStart < DistanceToEnd)
 	{
 		SetNPCState(EPatrolNPC2State::MovingToEnd);
 	}
+	else
+	{
+		SetNPCState(EPatrolNPC2State::MovingToStart);
+	}
+}
+
+bool APatrolNPC2::IsStunnedForAnimation() const
+{
+	return CurrentState == EPatrolNPC2State::Stunned;
+}
+
+bool APatrolNPC2::IsDeadForAnimation() const
+{
+	const bool bIsDeadState = CurrentState == EPatrolNPC2State::Dead;
+	UE_LOG(LogTemp, Warning, TEXT("Anim Check Dead: %d"), bIsDeadState);
+	return CurrentState == EPatrolNPC2State::Dead;
+}
+
+void APatrolNPC2::HideAfterDeathAnimation()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	// 죽는 애니메이션을 보여준 뒤 화면에서 숨김
+	SetActorHiddenInGame(true);
+
+	// 숨겨진 동안 Tick도 끔
+	SetActorTickEnabled(false);
+
+	// 숨겨진 뒤 RespawnDelay 후 다시 나타남
+	World->GetTimerManager().ClearTimer(RespawnTimerHandle);
+	World->GetTimerManager().SetTimer(
+		RespawnTimerHandle,
+		this,
+		&APatrolNPC2::FinishRespawn,
+		RespawnDelay,
+		false
+	);
+}
+
+void APatrolNPC2::FreezeDeathPose()
+{
+	SetActorLocation(FrozenLocation, false);
+	GetMesh()->bPauseAnims = true;
 }

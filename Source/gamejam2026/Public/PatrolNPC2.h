@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Animation/AnimMontage.h"
 #include "PatrolNPC2.generated.h"
 
 // NPC가 어느 방향으로 왕복 이동할지 정하는 enum
@@ -22,7 +23,8 @@ enum class EPatrolNPC2State : uint8
 	WaitingAtEnd UMETA(DisplayName = "Waiting At End"),
 	MovingToStart UMETA(DisplayName = "Moving To Start"),
 	WaitingAtStart UMETA(DisplayName = "Waiting At Start"),
-	Stunned UMETA(DisplayName = "Stunned")
+	Stunned UMETA(DisplayName = "Stunned"),
+	Dead UMETA(DisplayName = "Dead")
 };
 
 UCLASS()
@@ -32,11 +34,17 @@ class GAMEJAM2026_API APatrolNPC2 : public ACharacter
 
 public:
 
-	UFUNCTION(BlueprintCallable, Category = "NPC|Status")
-	void SetStunned(bool bNewStunned);
+	UFUNCTION(BlueprintPure, Category = "NPC|Animation")
+	bool IsWalkingForAnimation() const;
 
 	UFUNCTION(BlueprintPure, Category = "NPC|Animation")
-	bool IsMovingForAnimation() const;
+	bool IsStunnedForAnimation() const;
+
+	UFUNCTION(BlueprintPure, Category = "NPC|Animation")
+	bool IsDeadForAnimation() const;
+
+	UFUNCTION(BlueprintCallable, Category = "NPC|Status")
+	void SetStunned(bool bNewStunned);
 
 	// NPC가 공격당했을 때 호출.
 	// 실제 Destroy 대신 숨겼다가 RespawnDelay 후 StartLocation에서 다시 활성화함.
@@ -52,6 +60,21 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 protected:
+	// 리스폰될 때 범죄자로 설정될 확률. 0.3이면 30%
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Status", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float CriminalSpawnChance = 0.3f;
+	// 스턴 당했을 때 재생할 몽타주
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Animation")
+	UAnimMontage* StunMontage = nullptr;
+
+	// 죽었을 때 재생할 몽타주
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Animation")
+	UAnimMontage* DeathMontage = nullptr;
+	
+	// 죽는 애니메이션이 화면에 보일 시간.
+	// 이 시간이 지난 뒤 NPC를 숨김.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Respawn", meta = (ClampMin = "0.0"))
+	float DeathHideDelay = 3.0f;
 
 	// 스턴이 유지되는 시간
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Status", meta = (ClampMin = "0.0"))
@@ -113,7 +136,7 @@ protected:
 
 	// 부채꼴 안에 몇 개의 레이캐스트를 쏠지
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Detection", meta = (ClampMin = "1"))
-	int32 DetectionRayCount = 7;
+	int32 DetectionRayCount = 30;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC|Detection")
 	bool bHasDiscoveredPlayer = false;
@@ -132,13 +155,25 @@ protected:
 
 	// 공격당해서 사라진 뒤 다시 나타나기까지 걸리는 시간
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "NPC|Respawn", meta = (ClampMin = "0.0"))
-	float RespawnDelay = 3.0f;
+	float RespawnDelay = 30.0f;
 
 	// 현재 리스폰 대기 중인지 여부
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC|Respawn")
 	bool bIsRespawning = false;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "NPC|Status")
+	FVector FrozenLocation = FVector::ZeroVector;
+
 private:
+
+	FTimerHandle FreezeDeathPoseTimerHandle;
+
+	void FreezeDeathPose();
+
+	FTimerHandle DeathHideTimerHandle;
+
+	// 죽는 애니메이션 출력 후 NPC를 숨기고 리스폰 타이머를 시작함
+	void HideAfterDeathAnimation();
 
 	FTimerHandle StunTimerHandle;
 
