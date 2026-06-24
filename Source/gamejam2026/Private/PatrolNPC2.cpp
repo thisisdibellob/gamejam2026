@@ -1,7 +1,6 @@
 #include "PatrolNPC2.h"
 #include "GameSystemSubsystem.h"
 #include "../mainCharacter.h"
-#include "DrawDebugHelpers.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimInstance.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -268,21 +267,6 @@ void APatrolNPC2::CheckPlayerDetection(float DeltaTime)
 			}
 		}
 
-		if (bDrawDebugDetection)
-		{
-			const FColor LineColor = bThisRayHitPlayer ? FColor::Red : FColor::Green;
-
-			DrawDebugLine(
-				World,
-				TraceStart,
-				TraceEnd,
-				LineColor,
-				false,
-				0.0f,
-				0,
-				2.0f
-			);
-		}
 	}
 
 	if (!bHitPlayer)
