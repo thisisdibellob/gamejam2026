@@ -7,6 +7,7 @@
 #include "GameSystemSubsystem.generated.h"
 
 class AActor;
+class UUserWidget;
 
 UENUM(BlueprintType)
 enum class EGameSystemResult : uint8
@@ -71,6 +72,13 @@ private:
 	UPROPERTY()
 	EGameSystemResult GameResult = EGameSystemResult::None;
 
+	UPROPERTY()
+	UUserWidget* ActiveGameEndWidget = nullptr;
+
 	// 공통 종료 처리 함수입니다. 중복 실행을 막고 관련 이벤트를 호출합니다.
 	void FinishGame(EGameSystemResult Result);
+
+	void ShowGameEndWidget();
+	void LockGameInputForUI();
+	void RestartCurrentLevel();
 };
