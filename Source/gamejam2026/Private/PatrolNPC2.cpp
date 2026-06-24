@@ -37,6 +37,11 @@ void APatrolNPC2::Tick(float DeltaTime)
 		return;
 	}
 
+	if (bIsRespawning)
+	{
+		return;
+	}
+
 	// 순찰이 꺼졌거나 기절 상태면 이동 로직을 실행하지 않음
 	if (!bCanPatrol || CurrentState == EPatrolNPC2State::Stunned)
 	{
