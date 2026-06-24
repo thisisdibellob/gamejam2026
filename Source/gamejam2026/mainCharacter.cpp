@@ -254,12 +254,30 @@ void AMainCharacter::PerformStun()
 void AMainCharacter::PerformKill()
 {
 	float CurrentTime = GetWorld()->GetTimeSeconds();
-	if (CurrentTime - LastKillTime < KillCooldown) return;
+	if (CurrentTime - LastKillTime < KillCooldown)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Cooling down..."));
+		return;
+	}
 
+	if (KillMontage)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Playing KillMontage!")); // 이 로그가 찍히는지 확인!
+		PlayAnimMontage(KillMontage);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("KillMontage is NULL!")); // 이게 찍히면 블루프린트 할당이 안 된 것
+	}
 	AActor* TargetNPC = GetClosestNPC();
 	if (TargetNPC)
 	{
 		LastKillTime = CurrentTime;
+
+		// 몽타주가 에디터에서 제대로 할당되었는지 확인 후 재생합니다.
+		// 할당되지 않았는데 재생하려고 하면 게임이 튕길 수 있어서 꼭 검사해야 해요!
+		
+
 		OnKillNPC(TargetNPC);
 	}
 }
@@ -314,7 +332,10 @@ void AMainCharacter::ScheduleNextTransformation()
 void AMainCharacter::TransformToVampire()
 {
 	if (PermanentState == EPermanentState::PureHuman) return;
-
+	if (TransformMontage)
+	{
+		PlayAnimMontage(TransformMontage);
+	}
 	SetIsVampire(true);
 }
 
