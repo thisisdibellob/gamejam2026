@@ -1,4 +1,5 @@
 #include "PatrolNPC2.h"
+#include "GameSystemSubsystem.h"
 #include "../mainCharacter.h"
 #include "DrawDebugHelpers.h"
 #include "Kismet/GameplayStatics.h"
@@ -32,8 +33,15 @@ void APatrolNPC2::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// 순찰이 꺼졌거나 기절 상태면 이동 로직을 실행하지 않음
-	if (!bCanPatrol || CurrentState == EPatrolNPC2State::Stunned)
+	if (CurrentState == EPatrolNPC2State::Stunned)
+	{
+		return;
+	}
+
+	CheckPlayerDetection(DeltaTime);
+
+	// 순찰이 꺼졌거나 플레이어를 감지 중이면 이동 로직을 실행하지 않음
+	if (!bCanPatrol || bIsDetectingPlayer)
 	{
 		return;
 	}
@@ -57,8 +65,6 @@ void APatrolNPC2::Tick(float DeltaTime)
 	default:
 		break;
 	}
-
-	CheckPlayerDetection();
 }
 
 void APatrolNPC2::SetupPatrolPoints()
@@ -161,22 +167,28 @@ void APatrolNPC2::SetNPCState(EPatrolNPC2State NewState)
 	CurrentState = NewState;
 }
 
-void APatrolNPC2::CheckPlayerDetection()
+void APatrolNPC2::CheckPlayerDetection(float DeltaTime)
 {
-	if (!bEnablePlayerDetection)
+	if (!bEnablePlayerDetection || bHasDiscoveredPlayer)
 	{
+		bIsDetectingPlayer = false;
+		PlayerDetectionTimer = 0.0f;
 		return;
 	}
 
 	UWorld* World = GetWorld();
 	if (!World)
 	{
+		bIsDetectingPlayer = false;
+		PlayerDetectionTimer = 0.0f;
 		return;
 	}
 
 	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(this, 0);
 	if (!PlayerPawn)
 	{
+		bIsDetectingPlayer = false;
+		PlayerDetectionTimer = 0.0f;
 		return;
 	}
 
@@ -240,7 +252,16 @@ void APatrolNPC2::CheckPlayerDetection()
 		}
 	}
 
-	if (!bHitPlayer || bHasDiscoveredPlayer)
+	if (!bHitPlayer)
+	{
+		bIsDetectingPlayer = false;
+		PlayerDetectionTimer = 0.0f;
+		return;
+	}
+
+	bIsDetectingPlayer = true;
+	PlayerDetectionTimer += DeltaTime;
+	if (PlayerDetectionTimer < RequiredPlayerDetectionTime)
 	{
 		return;
 	}
@@ -252,6 +273,14 @@ void APatrolNPC2::CheckPlayerDetection()
 	}
 
 	bHasDiscoveredPlayer = true;
+
+	if (UGameInstance* GameInstance = GetGameInstance())
+	{
+		if (UGameSystemSubsystem* GameSystem = GameInstance->GetSubsystem<UGameSystemSubsystem>())
+		{
+			GameSystem->FindPlayer(this, PlayerPawn);
+		}
+	}
 
 	MainCharacter->OnDiscoveredByNPC(this);
 }
