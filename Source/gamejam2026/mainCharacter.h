@@ -6,6 +6,7 @@
 #include "gamejam2026Character.h"
 #include "InputAction.h"
 #include "Sound/SoundBase.h"
+#include "Camera/CameraShakeBase.h"
 #include "mainCharacter.generated.h"
 
 class UInputAction;
@@ -202,6 +203,12 @@ protected:
 
 	void UpdateSprint(float DeltaSeconds);
 	void SetStamina(float NewStamina);
+
+	UFUNCTION(BlueprintCallable, Category = "MainCharacter|Camera")
+	void PlayTransformCameraShake();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Camera")
+	TSubclassOf<UCameraShakeBase> TransformCameraShakeClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Sound")
 	USoundBase* AttackSound = nullptr;

@@ -9,6 +9,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "GameSystemSubsystem.h"
 #include "Public/PatrolNPC2.h"
+#include "Camera/PlayerCameraManager.h"
 #include "Engine/World.h"
 
 AMainCharacter::AMainCharacter()
@@ -203,6 +204,8 @@ void AMainCharacter::SetIsVampire(bool bNewIsVampire)
 
 	if (bIsVampire)
 	{
+		PlayTransformCameraShake();
+
 		if (TransformSound)
 		{
 			UGameplayStatics::PlaySoundAtLocation(this, TransformSound, GetActorLocation());
@@ -463,6 +466,22 @@ void AMainCharacter::OnDiscoveredByNPC(AActor* NPC)
 
 		OnDeath();
 	}
+}
+
+void AMainCharacter::PlayTransformCameraShake()
+{
+	if (!TransformCameraShakeClass)
+	{
+		return;
+	}
+
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC || !PC->PlayerCameraManager)
+	{
+		return;
+	}
+
+	PC->PlayerCameraManager->StartCameraShake(TransformCameraShakeClass);
 }
 
 /* --- Percent ��ȯ ���� --- */
