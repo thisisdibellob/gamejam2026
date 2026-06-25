@@ -10,6 +10,10 @@
 #include "mainCharacter.generated.h"
 
 class UInputAction;
+class UImage;
+class UPointLightComponent;
+class UTextBlock;
+class UUserWidget;
 struct FInputActionValue;
 
 // ���� ���¸� �����ϱ� ���� ������
@@ -219,6 +223,78 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Sound")
 	USoundBase* RevertTransformSound = nullptr;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|UI")
+	TSubclassOf<UUserWidget> BloodWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|UI")
+	TSubclassOf<UUserWidget> MainWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|UI")
+	TSubclassOf<UUserWidget> CharacterWidgetClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|UI")
+	int32 BloodWidgetZOrder = -10;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|UI", meta = (ClampMin = "0.05"))
+	float SubtitleBlinkInterval = 0.42f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|UI", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float SubtitleBlinkDimOpacity = 0.18f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|UI|Motion")
+	bool bEnableCharacterUIShake = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|UI|Motion", meta = (ClampMin = "0.0"))
+	float CharacterUIWalkShakeAmplitude = 1.2f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|UI|Motion", meta = (ClampMin = "0.0"))
+	float CharacterUISprintShakeAmplitude = 2.6f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|UI|Motion", meta = (ClampMin = "0.1"))
+	float CharacterUIWalkShakeFrequency = 4.4f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|UI|Motion", meta = (ClampMin = "0.1"))
+	float CharacterUISprintShakeFrequency = 7.1f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|UI|Motion", meta = (ClampMin = "0.1"))
+	float CharacterUIShakeSmoothSpeed = 8.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|UI|Mode Transition")
+	bool bEnableCharacterModeTransition = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|UI|Mode Transition", meta = (ClampMin = "0.05"))
+	float CharacterModeTransitionDuration = 0.42f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|UI|Mode Transition", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float CharacterModeTransitionStartOpacity = 0.08f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|UI|Mode Transition", meta = (ClampMin = "0.0", ClampMax = "0.25"))
+	float CharacterModeTransitionScaleAmount = 0.055f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|UI|Mode Transition")
+	FLinearColor CharacterModeHumanPulseColor = FLinearColor(0.82f, 0.94f, 1.0f, 1.0f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|UI|Mode Transition")
+	FLinearColor CharacterModeVampirePulseColor = FLinearColor(1.0f, 0.58f, 0.62f, 1.0f);
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "MainCharacter|Vampire Aura")
+	UPointLightComponent* VampireAuraLight = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Vampire Aura")
+	bool bEnableVampireAura = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Vampire Aura", meta = (ClampMin = "0.0"))
+	float VampireAuraIntensity = 120.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Vampire Aura", meta = (ClampMin = "0.0"))
+	float VampireAuraRadius = 260.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Vampire Aura", meta = (ClampMin = "0.1"))
+	float VampireAuraFadeSpeed = 3.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Vampire Aura")
+	FLinearColor VampireAuraColor = FLinearColor(1.0f, 0.08f, 0.035f, 1.0f);
+
 	/* --- �������Ʈ���� ȣ�� �����ϵ��� UFUNCTION �߰��� --- */
 	UFUNCTION(BlueprintCallable, Category = "MainCharacter|Sprint")
 	void StartSprint();
@@ -254,10 +330,55 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MainCharacter|Animations")
 	UAnimMontage* StunMontage;
 private:
+	void ShowBloodTransformWidget();
+	float GetBloodWidgetFadeOutDuration() const;
+	float StartBloodWidgetFadeOut();
+	void StartRevertToHuman();
+	void FinishRevertToHuman();
+	void RemoveBloodWidget();
+	void BlinkSubtitleText();
+	UTextBlock* FindSubtitleTextBlock();
+	void UpdateCharacterUIShake(float DeltaSeconds);
+	UUserWidget* FindCharacterWidget();
+	void PrepareCharacterModeUITransition(bool bNewIsVampire);
+	void StartCharacterModeUITransition(bool bNewIsVampire);
+	void UpdateCharacterModeUITransition(float DeltaSeconds);
+	bool CacheCharacterModeImages();
+	void ApplyCharacterModeUITransitionStyle(float Alpha);
+	void ResetCharacterModeImages();
+	void UpdateVampireAura(float DeltaSeconds);
+
 	FTimerHandle TransformTimerHandle;
+	FTimerHandle BloodRemoveTimerHandle;
+	FTimerHandle SubtitleBlinkTimerHandle;
+
+	UPROPERTY()
+	UUserWidget* ActiveBloodWidget = nullptr;
+
+	UPROPERTY()
+	UTextBlock* CachedSubtitleTextBlock = nullptr;
+
+	UPROPERTY()
+	UUserWidget* CachedCharacterWidget = nullptr;
+
+	UPROPERTY()
+	TArray<UImage*> CharacterModeImages;
+
 	UPROPERTY()
 	AActor* CurrentNearbyNPC = nullptr;
 
 	float LastInspectTime = -999.0f;
 	float LastKillTime = -999.0f;
+	bool bSubtitleBlinkVisible = true;
+	bool bCharacterModeTransitionActive = false;
+	bool bCharacterModeTransitionToVampire = false;
+	float CharacterUIShakePhase = 0.0f;
+	float CharacterUIShakeIntensity = 0.0f;
+	float CharacterModeTransitionTime = 0.0f;
+	float CurrentVampireAuraIntensity = 0.0f;
+	float VampireAuraPulseTime = 0.0f;
+	FVector2D CharacterUIBaseRenderTranslation = FVector2D::ZeroVector;
+	TArray<FVector2D> CharacterModeImageBaseScales;
+	TArray<float> CharacterModeImageBaseOpacities;
+	TArray<FLinearColor> CharacterModeImageBaseColors;
 };

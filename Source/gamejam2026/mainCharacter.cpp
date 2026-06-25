@@ -10,11 +10,78 @@
 #include "GameSystemSubsystem.h"
 #include "Public/PatrolNPC2.h"
 #include "Camera/PlayerCameraManager.h"
+#include "Animation/WidgetAnimation.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Blueprint/WidgetTree.h"
+#include "Blueprint/UserWidget.h"
+#include "Components/Image.h"
+#include "Components/PointLightComponent.h"
+#include "Components/TextBlock.h"
+#include "Components/Widget.h"
 #include "Engine/World.h"
+#include "UObject/FieldIterator.h"
+#include "UObject/UnrealType.h"
+
+namespace
+{
+	UWidgetAnimation* FindWidgetAnimationByName(UUserWidget* Widget, const FName& AnimationName)
+	{
+		if (!Widget)
+		{
+			return nullptr;
+		}
+
+		const FString TargetName = AnimationName.ToString();
+		const FString TargetInstName = TargetName + TEXT("_INST");
+
+		for (TFieldIterator<FObjectPropertyBase> PropertyIt(Widget->GetClass()); PropertyIt; ++PropertyIt)
+		{
+			FObjectPropertyBase* ObjectProperty = *PropertyIt;
+			if (!ObjectProperty || !ObjectProperty->PropertyClass || !ObjectProperty->PropertyClass->IsChildOf(UWidgetAnimation::StaticClass()))
+			{
+				continue;
+			}
+
+			const FString PropertyName = ObjectProperty->GetName();
+			if (PropertyName != TargetName && PropertyName != TargetInstName)
+			{
+				continue;
+			}
+
+			return Cast<UWidgetAnimation>(ObjectProperty->GetObjectPropertyValue_InContainer(Widget));
+		}
+
+		return nullptr;
+	}
+
+	float GetWidgetAnimationDuration(const UWidgetAnimation* Animation)
+	{
+		if (!Animation)
+		{
+			return 0.0f;
+		}
+
+		return FMath::Max(0.0f, Animation->GetEndTime() - Animation->GetStartTime());
+	}
+}
 
 AMainCharacter::AMainCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
+
+	VampireAuraLight = CreateDefaultSubobject<UPointLightComponent>(TEXT("VampireAuraLight"));
+	if (VampireAuraLight)
+	{
+		VampireAuraLight->SetupAttachment(RootComponent);
+		VampireAuraLight->SetRelativeLocation(FVector(0.0f, 0.0f, 70.0f));
+		VampireAuraLight->SetIntensity(0.0f);
+		VampireAuraLight->SetAttenuationRadius(260.0f);
+		VampireAuraLight->SetSourceRadius(80.0f);
+		VampireAuraLight->SetSoftSourceRadius(120.0f);
+		VampireAuraLight->SetLightColor(FLinearColor(1.0f, 0.08f, 0.035f, 1.0f));
+		VampireAuraLight->SetCastShadows(false);
+		VampireAuraLight->SetVisibility(false);
+	}
 }
 
 void AMainCharacter::BeginPlay()
@@ -30,12 +97,17 @@ void AMainCharacter::BeginPlay()
 
 	// ���� ���� �� ù ���� �����ٸ�
 	ScheduleNextTransformation();
+
+	GetWorldTimerManager().SetTimer(SubtitleBlinkTimerHandle, this, &AMainCharacter::BlinkSubtitleText, FMath::Max(SubtitleBlinkInterval, 0.05f), true);
 }
 
 void AMainCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 	UpdateSprint(DeltaSeconds);
+	UpdateCharacterUIShake(DeltaSeconds);
+	UpdateCharacterModeUITransition(DeltaSeconds);
+	UpdateVampireAura(DeltaSeconds);
 
 	AActor* NewNearbyNPC = GetClosestNPC();
 	if (CurrentNearbyNPC != NewNearbyNPC)
@@ -200,11 +272,14 @@ void AMainCharacter::SetIsVampire(bool bNewIsVampire)
 {
 	if (bIsVampire == bNewIsVampire) return;
 
+	PrepareCharacterModeUITransition(bNewIsVampire);
+
 	bIsVampire = bNewIsVampire;
 
 	if (bIsVampire)
 	{
 		PlayTransformCameraShake();
+		ShowBloodTransformWidget();
 
 		if (TransformSound)
 		{
@@ -219,14 +294,16 @@ void AMainCharacter::SetIsVampire(bool bNewIsVampire)
 		// ���� �����Ͱ� �ƴ� ���� 30�� �� ���ư��� Ÿ�̸� �۵�
 		if (PermanentState != EPermanentState::PureVampire)
 		{
-			FTimerDelegate TimerDel;
-			TimerDel.BindUFunction(this, FName("SetIsVampire"), false);
-			GetWorldTimerManager().SetTimer(TransformTimerHandle, TimerDel, 30.0f, false);
+			const float VampireDuration = 30.0f;
+			const float FadeOutDuration = GetBloodWidgetFadeOutDuration();
+			const float FadeOutStartDelay = FMath::Max(VampireDuration - FadeOutDuration, 0.0f);
+			GetWorldTimerManager().SetTimer(TransformTimerHandle, this, &AMainCharacter::StartRevertToHuman, FadeOutStartDelay, false);
 		}
 	}
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("[System] Reverted to Human. Awaiting next transformation."));
+		StartBloodWidgetFadeOut();
 
 		if (RevertTransformSound)
 		{
@@ -240,9 +317,460 @@ void AMainCharacter::SetIsVampire(bool bNewIsVampire)
 
 	OnVampireChanged(bIsVampire);
 	OnVampireChangedBroadcast.Broadcast(bIsVampire);
+	StartCharacterModeUITransition(bIsVampire);
 }
 
 /* --- �޸��� ���� --- */
+void AMainCharacter::ShowBloodTransformWidget()
+{
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC)
+	{
+		return;
+	}
+
+	GetWorldTimerManager().ClearTimer(BloodRemoveTimerHandle);
+
+	if (ActiveBloodWidget)
+	{
+		ActiveBloodWidget->RemoveFromParent();
+		ActiveBloodWidget = nullptr;
+	}
+
+	if (!BloodWidgetClass)
+	{
+		BloodWidgetClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/WBP/WBP_Blood.WBP_Blood_C"));
+	}
+
+	if (!BloodWidgetClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[MainCharacter] WBP_Blood widget class was not found."));
+		return;
+	}
+
+	ActiveBloodWidget = CreateWidget<UUserWidget>(PC, BloodWidgetClass);
+	if (!ActiveBloodWidget)
+	{
+		return;
+	}
+
+	ActiveBloodWidget->AddToViewport(BloodWidgetZOrder);
+
+	UWidgetAnimation* FadeInAnimation = FindWidgetAnimationByName(ActiveBloodWidget, FName(TEXT("FadeIn")));
+
+	if (FadeInAnimation)
+	{
+		ActiveBloodWidget->PlayAnimation(FadeInAnimation);
+	}
+}
+
+float AMainCharacter::GetBloodWidgetFadeOutDuration() const
+{
+	if (!ActiveBloodWidget)
+	{
+		return 0.0f;
+	}
+
+	if (UWidgetAnimation* FadeOutAnimation = FindWidgetAnimationByName(ActiveBloodWidget, FName(TEXT("FadeOut"))))
+	{
+		return GetWidgetAnimationDuration(FadeOutAnimation);
+	}
+
+	return 0.0f;
+}
+
+float AMainCharacter::StartBloodWidgetFadeOut()
+{
+	if (!ActiveBloodWidget)
+	{
+		return 0.0f;
+	}
+
+	if (GetWorldTimerManager().IsTimerActive(BloodRemoveTimerHandle))
+	{
+		return GetWorldTimerManager().GetTimerRemaining(BloodRemoveTimerHandle);
+	}
+
+	float FadeOutDuration = 0.0f;
+	if (UWidgetAnimation* FadeOutAnimation = FindWidgetAnimationByName(ActiveBloodWidget, FName(TEXT("FadeOut"))))
+	{
+		FadeOutDuration = GetWidgetAnimationDuration(FadeOutAnimation);
+		ActiveBloodWidget->PlayAnimation(FadeOutAnimation);
+	}
+
+	const float RemoveDelay = FMath::Max(FadeOutDuration, 0.1f);
+	GetWorldTimerManager().SetTimer(BloodRemoveTimerHandle, this, &AMainCharacter::RemoveBloodWidget, RemoveDelay, false);
+	return RemoveDelay;
+}
+
+void AMainCharacter::StartRevertToHuman()
+{
+	const float FadeOutDuration = StartBloodWidgetFadeOut();
+
+	if (FadeOutDuration <= 0.0f)
+	{
+		FinishRevertToHuman();
+		return;
+	}
+
+	GetWorldTimerManager().SetTimer(TransformTimerHandle, this, &AMainCharacter::FinishRevertToHuman, FadeOutDuration, false);
+}
+
+void AMainCharacter::FinishRevertToHuman()
+{
+	SetIsVampire(false);
+}
+
+void AMainCharacter::RemoveBloodWidget()
+{
+	GetWorldTimerManager().ClearTimer(BloodRemoveTimerHandle);
+
+	if (ActiveBloodWidget)
+	{
+		ActiveBloodWidget->RemoveFromParent();
+		ActiveBloodWidget = nullptr;
+	}
+}
+
+void AMainCharacter::BlinkSubtitleText()
+{
+	UTextBlock* SubtitleTextBlock = FindSubtitleTextBlock();
+	if (!SubtitleTextBlock)
+	{
+		return;
+	}
+
+	bSubtitleBlinkVisible = !bSubtitleBlinkVisible;
+	SubtitleTextBlock->SetRenderOpacity(bSubtitleBlinkVisible ? 1.0f : SubtitleBlinkDimOpacity);
+}
+
+UTextBlock* AMainCharacter::FindSubtitleTextBlock()
+{
+	if (IsValid(CachedSubtitleTextBlock))
+	{
+		return CachedSubtitleTextBlock;
+	}
+
+	CachedSubtitleTextBlock = nullptr;
+
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC)
+	{
+		return nullptr;
+	}
+
+	if (!MainWidgetClass)
+	{
+		MainWidgetClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/WBP/WBP_main.WBP_main_C"));
+	}
+
+	if (!MainWidgetClass)
+	{
+		return nullptr;
+	}
+
+	TArray<UUserWidget*> MainWidgets;
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(PC, MainWidgets, MainWidgetClass, false);
+
+	for (UUserWidget* MainWidget : MainWidgets)
+	{
+		if (!MainWidget || !MainWidget->WidgetTree)
+		{
+			continue;
+		}
+
+		CachedSubtitleTextBlock = Cast<UTextBlock>(MainWidget->WidgetTree->FindWidget(FName(TEXT("TextBlock_Subtitle"))));
+		if (CachedSubtitleTextBlock)
+		{
+			CachedSubtitleTextBlock->SetRenderOpacity(1.0f);
+			bSubtitleBlinkVisible = true;
+			return CachedSubtitleTextBlock;
+		}
+	}
+
+	return nullptr;
+}
+
+void AMainCharacter::UpdateCharacterUIShake(float DeltaSeconds)
+{
+	UUserWidget* CharacterWidget = FindCharacterWidget();
+	if (!CharacterWidget)
+	{
+		return;
+	}
+
+	const float Speed = GetVelocity().Size2D();
+	const bool bIsMovingOnGround = GetCharacterMovement() && GetCharacterMovement()->IsMovingOnGround() && Speed > 5.0f;
+	const float TargetIntensity = (bEnableCharacterUIShake && bIsMovingOnGround)
+		? FMath::Clamp(Speed / FMath::Max(WalkSpeed, 1.0f), 0.0f, 1.0f)
+		: 0.0f;
+
+	CharacterUIShakeIntensity = FMath::FInterpTo(
+		CharacterUIShakeIntensity,
+		TargetIntensity,
+		DeltaSeconds,
+		FMath::Max(CharacterUIShakeSmoothSpeed, 0.1f));
+
+	if (CharacterUIShakeIntensity <= 0.01f)
+	{
+		CharacterUIShakeIntensity = 0.0f;
+		CharacterWidget->SetRenderTranslation(CharacterUIBaseRenderTranslation);
+		return;
+	}
+
+	const float SprintBlendRange = FMath::Max(SprintSpeed - WalkSpeed, 1.0f);
+	const float SprintAlpha = FMath::Clamp((Speed - WalkSpeed) / SprintBlendRange, 0.0f, 1.0f);
+	const float Amplitude = FMath::Lerp(CharacterUIWalkShakeAmplitude, CharacterUISprintShakeAmplitude, SprintAlpha) * CharacterUIShakeIntensity;
+	const float Frequency = FMath::Lerp(CharacterUIWalkShakeFrequency, CharacterUISprintShakeFrequency, SprintAlpha);
+
+	CharacterUIShakePhase = FMath::Fmod(CharacterUIShakePhase + DeltaSeconds * Frequency * UE_TWO_PI, UE_TWO_PI);
+
+	const float HorizontalSway = FMath::Sin(CharacterUIShakePhase * 0.5f) * Amplitude * 0.35f;
+	const float VerticalBob = FMath::Sin(CharacterUIShakePhase) * Amplitude;
+	const FVector2D MotionOffset(HorizontalSway, VerticalBob);
+
+	CharacterWidget->SetRenderTranslation(CharacterUIBaseRenderTranslation + MotionOffset);
+}
+
+UUserWidget* AMainCharacter::FindCharacterWidget()
+{
+	if (IsValid(CachedCharacterWidget))
+	{
+		return CachedCharacterWidget;
+	}
+
+	CachedCharacterWidget = nullptr;
+
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC)
+	{
+		return nullptr;
+	}
+
+	if (!CharacterWidgetClass)
+	{
+		CharacterWidgetClass = LoadClass<UUserWidget>(nullptr, TEXT("/Game/WBP/WBP_character.WBP_character_C"));
+	}
+
+	if (!CharacterWidgetClass)
+	{
+		return nullptr;
+	}
+
+	TArray<UUserWidget*> CharacterWidgets;
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(PC, CharacterWidgets, CharacterWidgetClass, false);
+
+	for (UUserWidget* CharacterWidget : CharacterWidgets)
+	{
+		if (!CharacterWidget)
+		{
+			continue;
+		}
+
+		CachedCharacterWidget = CharacterWidget;
+		CharacterUIBaseRenderTranslation = CharacterWidget->GetRenderTransform().Translation;
+		return CachedCharacterWidget;
+	}
+
+	return nullptr;
+}
+
+void AMainCharacter::PrepareCharacterModeUITransition(bool bNewIsVampire)
+{
+	if (!bEnableCharacterModeTransition || !CacheCharacterModeImages())
+	{
+		return;
+	}
+
+	bCharacterModeTransitionToVampire = bNewIsVampire;
+	ApplyCharacterModeUITransitionStyle(0.0f);
+}
+
+void AMainCharacter::StartCharacterModeUITransition(bool bNewIsVampire)
+{
+	if (!bEnableCharacterModeTransition || !CacheCharacterModeImages())
+	{
+		return;
+	}
+
+	bCharacterModeTransitionActive = true;
+	bCharacterModeTransitionToVampire = bNewIsVampire;
+	CharacterModeTransitionTime = 0.0f;
+	ApplyCharacterModeUITransitionStyle(0.0f);
+}
+
+void AMainCharacter::UpdateCharacterModeUITransition(float DeltaSeconds)
+{
+	if (!bCharacterModeTransitionActive)
+	{
+		return;
+	}
+
+	const float Duration = FMath::Max(CharacterModeTransitionDuration, 0.05f);
+	CharacterModeTransitionTime += DeltaSeconds;
+
+	const float Alpha = FMath::Clamp(CharacterModeTransitionTime / Duration, 0.0f, 1.0f);
+	ApplyCharacterModeUITransitionStyle(Alpha);
+
+	if (Alpha >= 1.0f)
+	{
+		bCharacterModeTransitionActive = false;
+		ResetCharacterModeImages();
+	}
+}
+
+bool AMainCharacter::CacheCharacterModeImages()
+{
+	const bool bHasCachedImages =
+		CharacterModeImages.Num() == 3 &&
+		IsValid(CharacterModeImages[0]) &&
+		IsValid(CharacterModeImages[1]) &&
+		IsValid(CharacterModeImages[2]) &&
+		CharacterModeImageBaseScales.Num() == CharacterModeImages.Num() &&
+		CharacterModeImageBaseOpacities.Num() == CharacterModeImages.Num() &&
+		CharacterModeImageBaseColors.Num() == CharacterModeImages.Num();
+
+	if (bHasCachedImages)
+	{
+		return true;
+	}
+
+	CharacterModeImages.Reset();
+	CharacterModeImageBaseScales.Reset();
+	CharacterModeImageBaseOpacities.Reset();
+	CharacterModeImageBaseColors.Reset();
+
+	UUserWidget* CharacterWidget = FindCharacterWidget();
+	if (!CharacterWidget || !CharacterWidget->WidgetTree)
+	{
+		return false;
+	}
+
+	static const FName ImageNames[] =
+	{
+		FName(TEXT("Image_Person")),
+		FName(TEXT("Image_Tie")),
+		FName(TEXT("Image_Vampire"))
+	};
+
+	for (const FName& ImageName : ImageNames)
+	{
+		UImage* Image = Cast<UImage>(CharacterWidget->WidgetTree->FindWidget(ImageName));
+		if (!Image)
+		{
+			continue;
+		}
+
+		CharacterModeImages.Add(Image);
+		CharacterModeImageBaseScales.Add(Image->GetRenderTransform().Scale);
+		CharacterModeImageBaseOpacities.Add(Image->GetRenderOpacity());
+		CharacterModeImageBaseColors.Add(Image->GetColorAndOpacity());
+	}
+
+	return CharacterModeImages.Num() > 0 &&
+		CharacterModeImageBaseScales.Num() == CharacterModeImages.Num() &&
+		CharacterModeImageBaseOpacities.Num() == CharacterModeImages.Num() &&
+		CharacterModeImageBaseColors.Num() == CharacterModeImages.Num();
+}
+
+void AMainCharacter::ApplyCharacterModeUITransitionStyle(float Alpha)
+{
+	if (CharacterModeImages.Num() == 0)
+	{
+		return;
+	}
+
+	const float ClampedAlpha = FMath::Clamp(Alpha, 0.0f, 1.0f);
+	const float EasedAlpha = 1.0f - FMath::Pow(1.0f - ClampedAlpha, 3.0f);
+	const float PulseAmount = 1.0f - EasedAlpha;
+	const float PopAmount = FMath::Sin(EasedAlpha * UE_PI) * 0.018f;
+	const FLinearColor PulseColor = bCharacterModeTransitionToVampire
+		? CharacterModeVampirePulseColor
+		: CharacterModeHumanPulseColor;
+
+	for (int32 Index = 0; Index < CharacterModeImages.Num(); ++Index)
+	{
+		UImage* Image = CharacterModeImages[Index];
+		if (!IsValid(Image) ||
+			!CharacterModeImageBaseScales.IsValidIndex(Index) ||
+			!CharacterModeImageBaseOpacities.IsValidIndex(Index) ||
+			!CharacterModeImageBaseColors.IsValidIndex(Index))
+		{
+			continue;
+		}
+
+		const float BaseOpacity = CharacterModeImageBaseOpacities[Index];
+		const float NewOpacity = FMath::Lerp(BaseOpacity * CharacterModeTransitionStartOpacity, BaseOpacity, EasedAlpha);
+		Image->SetRenderOpacity(NewOpacity);
+
+		const FVector2D BaseScale = CharacterModeImageBaseScales[Index];
+		const float ScaleMultiplier = 1.0f - (CharacterModeTransitionScaleAmount * PulseAmount) + PopAmount;
+		Image->SetRenderScale(BaseScale * ScaleMultiplier);
+
+		const FLinearColor BaseColor = CharacterModeImageBaseColors[Index];
+		const float ColorBlend = PulseAmount * 0.38f;
+		const FLinearColor NewColor(
+			FMath::Lerp(BaseColor.R, PulseColor.R, ColorBlend),
+			FMath::Lerp(BaseColor.G, PulseColor.G, ColorBlend),
+			FMath::Lerp(BaseColor.B, PulseColor.B, ColorBlend),
+			BaseColor.A);
+		Image->SetColorAndOpacity(NewColor);
+	}
+}
+
+void AMainCharacter::ResetCharacterModeImages()
+{
+	for (int32 Index = 0; Index < CharacterModeImages.Num(); ++Index)
+	{
+		UImage* Image = CharacterModeImages[Index];
+		if (!IsValid(Image) ||
+			!CharacterModeImageBaseScales.IsValidIndex(Index) ||
+			!CharacterModeImageBaseOpacities.IsValidIndex(Index) ||
+			!CharacterModeImageBaseColors.IsValidIndex(Index))
+		{
+			continue;
+		}
+
+		Image->SetRenderOpacity(CharacterModeImageBaseOpacities[Index]);
+		Image->SetRenderScale(CharacterModeImageBaseScales[Index]);
+		Image->SetColorAndOpacity(CharacterModeImageBaseColors[Index]);
+	}
+}
+
+void AMainCharacter::UpdateVampireAura(float DeltaSeconds)
+{
+	if (!VampireAuraLight)
+	{
+		return;
+	}
+
+	const float TargetIntensity = (bEnableVampireAura && bIsVampire) ? VampireAuraIntensity : 0.0f;
+	CurrentVampireAuraIntensity = FMath::FInterpTo(
+		CurrentVampireAuraIntensity,
+		TargetIntensity,
+		DeltaSeconds,
+		FMath::Max(VampireAuraFadeSpeed, 0.1f));
+
+	if (TargetIntensity <= 0.0f && CurrentVampireAuraIntensity <= 0.5f)
+	{
+		CurrentVampireAuraIntensity = 0.0f;
+		VampireAuraLight->SetIntensity(0.0f);
+		VampireAuraLight->SetVisibility(false);
+		return;
+	}
+
+	VampireAuraPulseTime += DeltaSeconds;
+
+	const float Pulse = bIsVampire
+		? 1.0f + (FMath::Sin(VampireAuraPulseTime * 2.1f) * 0.06f)
+		: 1.0f;
+
+	VampireAuraLight->SetVisibility(true);
+	VampireAuraLight->SetLightColor(VampireAuraColor);
+	VampireAuraLight->SetAttenuationRadius(FMath::Max(VampireAuraRadius, 0.0f));
+	VampireAuraLight->SetIntensity(CurrentVampireAuraIntensity * Pulse);
+}
+
 void AMainCharacter::StartSprint()
 {
 	if (bIsVampire) return;
